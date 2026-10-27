@@ -1,0 +1,8 @@
+---
+import {assetUrl} from '../../lib/blog/server';
+import type {Asset} from '../../lib/blog/model';
+interface Props{asset?:Asset;priority?:boolean;sizes?:string}
+const {asset,priority=false,sizes='(min-width:1320px) 700px, (min-width:1024px) calc((100vw - 88px) * .5625), (min-width:600px) calc((100vw - 56px) * 1.125), calc((100vw - 40px) * 1.125)'}=Astro.props;
+const source=(format:string)=>asset?.variants.filter(v=>v.format===format).map(v=>`${assetUrl(asset!,v.width,format)} ${v.width}w`).join(', ');
+---
+{asset&&<picture class="blog-photo"><source type="image/avif" srcset={source('avif')} sizes={sizes}/><img src={assetUrl(asset,1200)} srcset={source('webp')} sizes={sizes} width={asset.width} height={asset.height} alt={asset.alt} loading={priority?'eager':'lazy'} fetchpriority={priority?'high':'auto'}/></picture>}

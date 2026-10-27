@@ -11,15 +11,15 @@ import SupportAssistant from '../components/SupportAssistant.astro';
 import { site, nav, units, socialLinks, agencyUrl, media, googleProfile } from '../data/content';
 import Icon from '../components/Icon.astro';
 import BookingLink from '../components/BookingLink.astro';
-interface Props { title: string; description: string; noindex?: boolean; appendBrand?: boolean; image?: keyof typeof media }
-const { title, description, noindex = false, appendBrand = true, image = 'hero' } = Astro.props;
+interface Props { title: string; description: string; noindex?: boolean; appendBrand?: boolean; image?: keyof typeof media; canonicalPath?:string; blogMeta?: { image?:string; alt?:string; width?:number; height?:number; credit?:string; copyright?:string; title?:string; description?:string; twitterTitle?:string; twitterDescription?:string; twitterImage?:string; twitterAlt?:string; robots?:string[]; schema?:unknown[]; extraMeta?:{name:string;content:string}[]; article?:boolean } }
+const { title, description, noindex = false, appendBrand = true, image = 'hero', blogMeta,canonicalPath } = Astro.props;
 const pageTitle = appendBrand ? `${title} | Instituto Bicalho` : title;
 const breadcrumbName = nav.find(item => item.href === Astro.url.pathname)?.label ?? title;
 const indexable = import.meta.env.PUBLIC_INDEXABLE === 'true' && process.env.VERCEL_ENV !== 'preview' && !noindex;
-const canonical = new URL(Astro.url.pathname, site.url).href;
+const canonical = new URL(canonicalPath||Astro.url.pathname, site.url).href;
 const verification = import.meta.env.PUBLIC_GOOGLE_VERIFICATION;
 const pageImage = media[image];
-const pageImageUrl = `${site.url}/assets/${pageImage.src}-1200.webp`;
+const pageImageUrl = blogMeta?.image || `${site.url}/assets/${pageImage.src}-1200.webp`;
 const schema = { '@context': 'https://schema.org', '@graph': [
   { '@type': 'WebSite', '@id': `${site.url}/#website`, name: site.name, url: site.url, inLanguage: 'pt-BR', publisher: { '@id': `${site.url}/#organization` } },
   { '@type': 'WebPage', '@id': `${canonical}#webpage`, name: pageTitle, description, url: canonical, inLanguage: 'pt-BR', isPartOf: { '@id': `${site.url}/#website` }, about: { '@id': `${site.url}/#organization` }, primaryImageOfPage: { '@type': 'ImageObject', '@id': `${site.url}/#foto-${pageImage.src}`, contentUrl: `${site.url}/assets/${pageImage.src}-1600.webp`, name: pageImage.title, description: pageImage.alt, width: pageImage.width, height: pageImage.height, creditText: 'Acervo institucional do Instituto Bicalho' } },
@@ -27,6 +27,9 @@ const schema = { '@context': 'https://schema.org', '@graph': [
   ...units.map(u => ({ '@type': 'Dentist', '@id': `${site.url}/#${u.id}`, name: `${site.name} — ${u.name}`, url: `${site.url}/#unidades`, telephone: `+${u.phone}`, parentOrganization: { '@id': `${site.url}/#organization` }, address: { '@type': 'PostalAddress', streetAddress: u.address, addressLocality: u.name, addressRegion: 'MG', addressCountry: 'BR' }, areaServed: { '@type': 'City', name: u.name }, hasMap: googleProfile(u), sameAs: [googleProfile(u)], geo: { '@type': 'GeoCoordinates', latitude: u.latitude, longitude: u.longitude } })),
   ...(Astro.url.pathname !== '/' && !noindex ? [{ '@type': 'BreadcrumbList', itemListElement: [ { '@type': 'ListItem', position: 1, name: 'Início', item: site.url }, { '@type': 'ListItem', position: 2, name: breadcrumbName, item: canonical } ] }] : []),
 ] };
+if(blogMeta?.schema) schema['@graph'].push(...blogMeta.schema as any[]);
+if(blogMeta?.image){const page=schema['@graph'].find(n=>n['@type']==='WebPage');if(page&&'primaryImageOfPage'in page&&page.primaryImageOfPage)Object.assign(page.primaryImageOfPage,{'@id':`${canonical}#cover`,contentUrl:blogMeta.image,name:blogMeta.alt||pageTitle,description:blogMeta.alt||description,width:blogMeta.width||1200,height:blogMeta.height||800,creditText:blogMeta.credit||'',copyrightNotice:blogMeta.copyright||''});}
+const robots = [indexable ? 'index' : 'noindex', blogMeta?.robots?.includes('nofollow') ? 'nofollow' : 'follow', ...(blogMeta?.robots||[]).filter(r=>['noimageindex','nosnippet'].includes(r))].join(', ');
 ---
 <!doctype html>
 <html lang="pt-BR">
@@ -37,24 +40,25 @@ const schema = { '@context': 'https://schema.org', '@graph': [
     <link rel="preload" href={jakarta} as="font" type="font/woff2" crossorigin/>
     <title>{pageTitle}</title>
     <meta name="description" content={description}/>
-    <meta name="robots" content={indexable ? 'index, follow' : 'noindex, follow'}/>
+    <meta name="robots" content={robots}/>
     <link rel="canonical" href={canonical}/>
     <link rel="icon" type="image/png" href="/assets/favicon.png"/>
-    <meta property="og:type" content="website"/>
+    <meta property="og:type" content={blogMeta?.article ? 'article' : 'website'}/>
     <meta property="og:locale" content="pt_BR"/>
-    <meta property="og:title" content={pageTitle}/>
-    <meta property="og:description" content={description}/>
+    <meta property="og:title" content={blogMeta?.title || pageTitle}/>
+    <meta property="og:description" content={blogMeta?.description || description}/>
     <meta property="og:url" content={canonical}/>
     <meta property="og:image" content={pageImageUrl}/>
-    <meta property="og:image:alt" content={pageImage.alt}/>
-    <meta property="og:image:width" content="1200"/>
-    <meta property="og:image:height" content={String(Math.round(pageImage.height * 1200 / pageImage.width))}/>
+    <meta property="og:image:alt" content={blogMeta?.alt || pageImage.alt}/>
+    <meta property="og:image:width" content={String(blogMeta?.width || 1200)}/>
+    <meta property="og:image:height" content={String(blogMeta?.height || Math.round(pageImage.height * 1200 / pageImage.width))}/>
     <meta property="og:image:type" content="image/webp"/>
     <meta name="twitter:card" content="summary_large_image"/>
-    <meta name="twitter:title" content={pageTitle}/>
-    <meta name="twitter:description" content={description}/>
-    <meta name="twitter:image" content={pageImageUrl}/>
-    <meta name="twitter:image:alt" content={pageImage.alt}/>
+    <meta name="twitter:title" content={blogMeta?.twitterTitle || blogMeta?.title || pageTitle}/>
+    <meta name="twitter:description" content={blogMeta?.twitterDescription || blogMeta?.description || description}/>
+    <meta name="twitter:image" content={blogMeta?.twitterImage || pageImageUrl}/>
+    <meta name="twitter:image:alt" content={blogMeta?.twitterAlt || blogMeta?.alt || pageImage.alt}/>
+    {blogMeta?.extraMeta?.map(m=><meta name={m.name} content={m.content}/>)}
     {verification && <meta name="google-site-verification" content={verification}/>}
     <script type="application/ld+json" set:html={JSON.stringify(schema).replace(/</g, '\\u003c')}/>
   </head>

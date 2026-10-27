@@ -3,15 +3,16 @@ import assert from 'node:assert/strict';
 const browser = await chromium.launch({ channel:process.env.PLAYWRIGHT_CHANNEL || 'chrome' });
 const page = await browser.newPage({viewport:{width:390,height:844}});
 let tags = 0;
+const base=process.env.TEST_URL||'http://127.0.0.1:4321';
 await page.route('**/*',async route => {
   const url = route.request().url();
   if(url.includes('googletagmanager.com')){tags++;return route.fulfill({contentType:'application/javascript',body:'/* analytics transport stub: no data leaves the browser */'});}
-  if(url.startsWith('http://127.0.0.1:4321/') && route.request().resourceType()==='document'){
+  if(url.startsWith(base+'/') && route.request().resourceType()==='document'){
     const response=await route.fetch();const body=(await response.text()).replace(/data-ga-id(?:="")?/, 'data-ga-id="G-TEST12345"');return route.fulfill({response,body});
   }
   return route.continue();
 });
-await page.goto('http://127.0.0.1:4321/?utm_source=instagram&utm_medium=paid_social&utm_campaign=launch&email=private%40example.com');
+await page.goto(base+'/?utm_source=instagram&utm_medium=paid_social&utm_campaign=launch&email=private%40example.com');
 assert.equal(tags,0);assert(await page.locator('.cookie-notice').isVisible());
 await page.locator('[data-consent="denied"]').click();await page.reload();assert.equal(tags,0);assert(await page.locator('.cookie-notice').isHidden());
 await page.locator('[data-cookie-settings]').click();await page.locator('[data-consent="granted"]').click();
@@ -30,12 +31,12 @@ assert(!events.some(e=>e[1]==='online_booking_click'));
 assert(events.some(e=>e[1]==='whatsapp_click'&&e[2].unit==='belo-horizonte'&&e[2].placement==='assistant'));
 assert(!events.some(e=>e[1]==='purchase'||e[1]==='generate_lead'));
 await page.keyboard.press('Escape');
-await page.goto('http://127.0.0.1:4321/contato/?utm_source=instagram&email=private%40example.com');await page.waitForFunction(()=>window.dataLayer?.length>=4);
+await page.goto(base+'/contato/?utm_source=instagram&email=private%40example.com');await page.waitForFunction(()=>window.dataLayer?.length>=4);
 for(const id of ['joao-monlevade','belo-horizonte']){const contact=page.locator(`#unidades [data-whatsapp="${id}"]`);await contact.evaluate(el=>el.addEventListener('click',e=>e.preventDefault()));await contact.click();}
 const contactEvents=await page.evaluate(()=>window.dataLayer.map(a=>Array.from(a)));
 for(const id of ['joao-monlevade','belo-horizonte'])assert(contactEvents.some(e=>e[1]==='whatsapp_click'&&e[2].unit===id&&e[2].placement==='contact-units'));
 assert(!JSON.stringify(contactEvents).includes('private@example.com'));assert(!JSON.stringify(contactEvents).includes('PRIVATE_NOTE_123'));
-await page.context().addCookies([{name:'_ga',value:'test',url:'http://127.0.0.1:4321/'}]);
+await page.context().addCookies([{name:'_ga',value:'test',url:base+'/'}]);
 await page.locator('[data-cookie-settings]').click();await page.locator('[data-consent="denied"]').click();await page.waitForLoadState('load');
 assert.equal(tags,2);assert(!(await page.context().cookies()).some(c=>c.name.startsWith('_ga')));
 console.log('PASS: consent gating, rejection, acceptance, page_view once, WhatsApp unit/placement, sanitized URL, revocation and cookie deletion; Google requests stubbed.');

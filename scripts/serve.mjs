@@ -3,7 +3,10 @@ import { readFile, stat } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve, extname, sep } from 'node:path';
 import { gzipSync } from 'node:zlib';
-const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
+import { existsSync } from 'node:fs';
+const clientRoot=fileURLToPath(new URL('../dist/client/',import.meta.url));
+// This utility serves built static pages only; npm run preview also runs SSR.
+const root = resolve(existsSync(clientRoot)?clientRoot:fileURLToPath(new URL('../dist/', import.meta.url)));
 const redirects = JSON.parse(await readFile(new URL('../redirects.json', import.meta.url), 'utf8'));
 const types = { '.html':'text/html; charset=utf-8', '.css':'text/css', '.js':'text/javascript', '.png':'image/png', '.webp':'image/webp', '.avif':'image/avif', '.svg':'image/svg+xml', '.woff2':'font/woff2', '.xml':'application/xml', '.txt':'text/plain' };
 createServer(async (req, res) => {

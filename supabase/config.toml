@@ -1,0 +1,3 @@
+[functions.publish-scheduled]
+verify_jwt = false
+# The function verifies BLOG_CRON_SECRET before invoking the shared server publisher.

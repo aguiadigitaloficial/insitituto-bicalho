@@ -4,7 +4,7 @@ import {writeFile} from 'node:fs/promises';
 const browser=await chromium.launch({channel:process.env.PLAYWRIGHT_CHANNEL || 'chrome',headless:true});
 const page=await browser.newPage({viewport:{width:390,height:844}});
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
-await page.goto('http://127.0.0.1:4321');
+await page.goto(process.env.TEST_URL||'http://127.0.0.1:4321');
 await page.waitForFunction(()=>document.body.dataset.motion==='ready');
 await page.waitForTimeout(1200);
 assert.equal(await page.locator('.motion-line').count(),0,'Heading motion must preserve native line balancing');

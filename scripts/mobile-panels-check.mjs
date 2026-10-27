@@ -6,6 +6,7 @@ const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL 
 const routes = ['/', '/tratamentos/', '/estetica/', '/ortodontia-e-cirurgia/', '/odontologia-de-precisao/'];
 const sizes = [[360, 640], [390, 844], [430, 740]];
 const errors = [], checks = [];
+const base=process.env.TEST_URL||'http://127.0.0.1:4321';
 const page = await browser.newPage({ viewport: { width: 360, height: 640 }, isMobile: true, hasTouch: true });
 page.on('pageerror', error => errors.push(error.message));
 const geometry = selector => page.locator(selector).evaluate(el => {
@@ -15,7 +16,7 @@ const geometry = selector => page.locator(selector).evaluate(el => {
 for (const route of routes) {
   for (const [width, height] of sizes) {
     await page.setViewportSize({ width, height });
-    await page.goto(`http://127.0.0.1:4321${route}`);
+    await page.goto(`${base}${route}`);
     await page.waitForFunction(() => document.body.dataset.motion === 'ready');
     await page.locator('#primary-booking').click();
     await page.waitForTimeout(300);
@@ -44,7 +45,7 @@ for (const route of routes) {
 // Photo frames stay stationary; the reveal follows viewport entry and never replays.
 for (const route of routes) {
   await page.setViewportSize({ width: 360, height: 480 });
-  await page.goto(`http://127.0.0.1:4321${route}`);
+  await page.goto(`${base}${route}`);
   await page.waitForFunction(() => document.body.dataset.motion === 'ready');
   const photo = page.locator('.hero-photo, .inner-hero-photo').first();
   const top = await photo.evaluate(el => el.getBoundingClientRect().top + scrollY);
@@ -60,7 +61,7 @@ for (const route of routes) {
 }
 
 await page.setViewportSize({ width: 390, height: 844 });
-await page.goto('http://127.0.0.1:4321/');
+await page.goto(base+'/');
 await page.locator('.assistant-launcher').click();
 await page.getByRole('button', { name: 'Quero agendar', exact: true }).click();
 await page.getByRole('button', { name: 'Belo Horizonte', exact: true }).click();

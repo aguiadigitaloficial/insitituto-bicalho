@@ -31,6 +31,7 @@ export const nav = [
   { href: '/ortodontia-e-cirurgia/', label: 'Ortodontia e Cirurgia' },
   { href: '/odontologia-de-precisao/', label: 'Odontologia de Precisão' },
   { href: '/contato/', label: 'Contato' },
+  { href: '/conteudos/', label: 'Blog' },
 ];
 export type Service = { id: string; title: string; text: string };
 export type Area = { slug: string; title: string; short: string; homeSummary?: string; heading: string; intro: string; icon: string; image: keyof typeof media; sectionImage: keyof typeof media; services: Service[]; questions: [string, string][]; seoTitle: string; seoDescription: string; eyebrow: string; servicesHeading: string; faqIntro: string; relatedLinks: { label: string; href: string }[] };

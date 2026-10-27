@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 const browser=await chromium.launch({channel:process.env.PLAYWRIGHT_CHANNEL || 'chrome',headless:true});
 const context=await browser.newContext({viewport:{width:390,height:844}});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
-await page.goto('http://127.0.0.1:4321/?utm_source=test&utm_campaign=preview');
+const base=process.env.TEST_URL||'http://127.0.0.1:4321';
+await page.goto(base+'/?utm_source=test&utm_campaign=preview');
 const dialog=page.locator('#support-dialog');const actions=page.locator('#support-actions');
 const choose=async name=>actions.getByRole('button',{name,exact:true}).click();
 const reset=async()=>dialog.locator('[data-support-reset]').click();
@@ -54,7 +55,7 @@ await page.emulateMedia({reducedMotion:'reduce'});await reset();await choose('Qu
 await page.reload();await page.locator('.assistant-launcher').click();assert.equal(await page.locator('.chat-visitor').count(),0);await page.keyboard.press('Escape');
 assert.equal(await page.locator('[data-unit-card="belo-horizonte"] [data-online-booking]').count(),0);
 assert.equal(await page.locator('iframe[loading="lazy"]').count(),2);assert.equal(await page.locator('.footer-brand img').getAttribute('src'),'/assets/logo-transparent-600.webp');assert.equal(await page.locator('.agency-credit a').getAttribute('href'),'https://www.aguiadigital.com/');
-const nojs=await browser.newContext({javaScriptEnabled:false});const np=await nojs.newPage();await np.goto('http://127.0.0.1:4321/');assert(await np.locator('.assistant-launcher').isHidden());assert.equal(await np.locator('#unidades [data-online-booking]').count(),0);assert.equal(await np.locator('#unidades [data-whatsapp]').count(),2);await nojs.close();
+const nojs=await browser.newContext({javaScriptEnabled:false});const np=await nojs.newPage();await np.goto(base+'/');assert(await np.locator('.assistant-launcher').isHidden());assert.equal(await np.locator('#unidades [data-online-booking]').count(),0);assert.equal(await np.locator('#unidades [data-whatsapp]').count(),2);await nojs.close();
 assert.deepEqual(errors,[]);await writeFile('artifacts/support-verification.json',JSON.stringify({services:cases,otherDoubts:4,patientPaths:3,bookingUnits:2,history:'back/reset/reopen/reload',privacy:'no transcript persistence; no auto send; escaped note',responsive:'360-1440, landscape, 200% text, reduced motion, no JS',a11y,errors},null,2));
 console.log(JSON.stringify({services:cases.length,errors,violations:a11y.map(a=>({stage:a.stage,violations:a.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))}))},null,2));
 await browser.close();assert.equal(a11y.flatMap(a=>a.violations).length,0);

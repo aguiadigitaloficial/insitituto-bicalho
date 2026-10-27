@@ -1,0 +1,11 @@
+---
+import type {PublicPost,Asset,Taxonomy} from '../../lib/blog/model';
+import BlogPhoto from './BlogPhoto.astro';
+interface Props{post:PublicPost;assets:Asset[];taxonomies:Taxonomy[];compact?:boolean;lead?:boolean}
+const {post,assets,taxonomies,compact=false,lead=false}=Astro.props;
+const s=post.snapshot;const category=taxonomies.find(t=>t.id===s.primaryCategoryId);const photo=(post.media||assets).find(a=>a.id===(s.thumbnailId||s.coverId));
+---
+<article class:list={['post-card',{compact,lead}]}>
+ <a class="post-photo-link" href={`/conteudos/${post.slug}/`} tabindex="-1" aria-hidden="true"><BlogPhoto asset={photo} priority={lead} sizes={compact?'150px':lead?'(min-width:1200px) 620px, 100vw':'(min-width:1200px) 400px, (min-width:600px) 50vw, 100vw'}/></a>
+ <div class="post-card-copy">{post.is_demo&&<span class="demo-label">Demonstração</span>}{category&&<a class="post-category" href={`/conteudos/categoria/${category.slug}/`}>{category.name}</a>}<h3><a href={`/conteudos/${post.slug}/`}>{s.title}</a></h3><time datetime={post.first_published_at}>{new Date(post.first_published_at).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo',day:'numeric',month:'long',year:'numeric'})}</time>{!compact&&<p>{s.excerpt}</p>}</div>
+</article>

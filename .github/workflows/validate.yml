@@ -1,7 +1,7 @@
 name: Validate website
 on:
   push:
-    branches: [main]
+    branches: [main, codex/blog-editorial]
   pull_request:
 permissions:
   contents: read
@@ -12,7 +12,7 @@ jobs:
   website:
     # Use the OS dependency set supported by the installed Playwright release.
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       PUBLIC_INDEXABLE: 'false'
       PLAYWRIGHT_CHANNEL: chromium
@@ -25,16 +25,11 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npx playwright install --with-deps chromium webkit
-      - name: Start local preview
-        run: |
-          node scripts/serve.mjs > /tmp/bicalho-preview.log 2>&1 &
-          for attempt in {1..30}; do
-            if curl --fail --silent http://127.0.0.1:4321/ > /dev/null; then exit 0; fi
-            sleep 1
-          done
-          cat /tmp/bicalho-preview.log
-          exit 1
-      - run: npm run test:all
+      - run: npm run test:blog:core
+      - name: SSR, editorial UI and existing website regression suite
+        run: npm run test:blog:browser
+        env:
+          BLOG_RUN_LEGACY: 'true'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
