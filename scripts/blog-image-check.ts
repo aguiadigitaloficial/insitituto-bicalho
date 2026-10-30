@@ -20,7 +20,7 @@ try {
     const image = await imageSource(input);
     if (name === 'portrait') assert(image.height > image.width, 'EXIF orientation must normalize portrait dimensions');
     for (const format of ['webp', 'avif'] as const) {
-      const variant = await image.variant(120, format), stamped = withCopyright(variant.bytes, format, COPYRIGHT, variant.width, variant.height);
+      const variant = await image.variant(120, format); assert(variant); const stamped = withCopyright(variant.bytes, format, COPYRIGHT, variant.width, variant.height);
       const target = `${dir}/${name}.${format}`; await writeFile(target, stamped);
       const before = await sharp(variant.bytes).raw().toBuffer(), after = await sharp(stamped).raw().toBuffer();
       assert.deepEqual(after, before, 'Adding copyright must not alter pixels or alpha');
@@ -43,12 +43,19 @@ try {
     const source = await cloudflareImageSource(input, images);
     if (name === 'portrait') assert(source.height > source.width, 'Cloudflare must normalize portrait orientation');
     for (const format of ['webp', 'avif'] as const) {
-      const variant = await source.variant(120, format); assert(variant.width <= source.width);
+      const variant = await source.variant(120, format); assert(variant); assert(variant.width <= source.width);
       const stamped = withCopyright(variant.bytes, format, COPYRIGHT, variant.width, variant.height);
       const metadata = await sharp(stamped).metadata(); assert.equal(metadata.width, variant.width); assert.equal(metadata.height, variant.height);
       report.cases.push({engine: 'Cloudflare local binding', name, format, width: metadata.width, height: metadata.height});
     }
   }
+  const large = await cloudflareImageSource(await readFile('public/assets/official-entrance-2936.webp'), images);
+  assert.equal(await large.variant(1600,'avif'),null);
+  assert.equal((await large.variant(2936,'webp'))?.width,2936);
+  const fallback = {info:images.info.bind(images),input:(input:any)=>({transform:(options:any)=>({output:(optionsOut:any)=>images.input(input).transform(options).output({...optionsOut,format:'image/webp'})})})} as unknown as ImagesBinding;
+  const fallbackSource=await cloudflareImageSource(photo,fallback);
+  assert.equal(await fallbackSource.variant(120,'avif'),null,'A documented WebP fallback must not be mislabeled as AVIF or fail the upload');
+  report.cases.push({engine:'Cloudflare binding',name:'large WebP and AVIF fallback',width:2936});
   await assert.rejects(cloudflareImageSource(Buffer.from('<svg/>'), images));
   console.log(`PASS: ${report.cases.length} image cases; EXIF/XMP copyright, unchanged pixels/alpha, portrait orientation, Cloudflare Images emulation, invalid input and native size limits.`);
 } finally {

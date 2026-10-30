@@ -12,7 +12,7 @@ export async function processUpload(asset:Asset){
   const variants:Asset['variants']=[];
   for(const size of [...new Set([480,800,1200,1600,1920,2560,2936].filter(w=>w<width).concat(Math.min(width,2936)))]){
     for(const format of ['webp','avif'] as const){
-      const info=await image.variant(size,format);const buffer=withCopyright(info.bytes,format,asset.copyright,info.width,info.height);
+      const info=await image.variant(size,format);if(!info)continue;const buffer=withCopyright(info.bytes,format,asset.copyright,info.width,info.height);
       const path=`${asset.id}/${stamp}-${size}.${format}`;const result=await client.storage.from('blog-private').upload(path,buffer,{contentType:`image/${format}`,upsert:true});if(result.error)throw new Error('Não foi possível preparar as versões da imagem.');variants.push({path,width:info.width,height:info.height,format});
     }
   }
