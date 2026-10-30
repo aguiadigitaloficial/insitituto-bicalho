@@ -26,6 +26,7 @@
     "preview:cloudflare": "wrangler dev --config dist-cloudflare/server/wrangler.json --port 4326",
     "test:blog:images": "node --import tsx scripts/blog-image-check.ts",
     "test:blog:worker": "node --import tsx scripts/blog-worker-check.ts",
+    "test:blog:editor:live": "node --env-file=.env.blog.local --import tsx scripts/blog-editor-live-check.ts",
     "deploy:cloudflare:preview": "node --env-file=.env.provision.local --env-file=.env.blog.local scripts/deploy-cloudflare-preview.mjs --deploy"
   },
   "dependencies": {
