@@ -2,11 +2,14 @@ import {readFile, writeFile, readdir, mkdir} from 'node:fs/promises';
 import {execFileSync, spawn} from 'node:child_process';
 import {parseEnv} from 'node:util';
 import {resolve, join} from 'node:path';
+import {cloudflareSourceDigest} from './stamp-cloudflare-build.mjs';
 
 // This command deliberately cannot fall back to the agency's global Wrangler login.
 const root = process.cwd(), configPath = resolve('dist-cloudflare/server/wrangler.json');
 const source = JSON.parse(await readFile('wrangler.jsonc', 'utf8'));
 const built = JSON.parse(await readFile(configPath, 'utf8'));
+const stamp=JSON.parse(await readFile('artifacts/provision/cloudflare-build.json','utf8'));
+if(stamp.sourceDigest!==await cloudflareSourceDigest())throw new Error('O pacote não corresponde aos arquivos atuais. Execute npm run build:cloudflare antes de publicar.');
 const account = process.env.CLOUDFLARE_ACCOUNT_ID, token = process.env.CLOUDFLARE_API_TOKEN;
 const name = 'instituto-bicalho-blog-preview';
 if (!token || account !== source.account_id || built.account_id !== account || source.name !== name || built.name !== name) throw new Error('Confirme o token e a conta Cloudflare do Instituto; login global não é aceito.');

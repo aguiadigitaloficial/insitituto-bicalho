@@ -27,6 +27,8 @@ O Brevo Free tem limite de 300 mensagens diárias. A chave criada em 30/10/2026 
 
 Usar Node 24. O build padrão mantém a configuração Vercel; `npm run build:cloudflare` produz `dist-cloudflare/` separadamente. O comando de publicação verifica conta explícita do Instituto, token de conta ativo, branch `codex/`, nome exato do Worker, ausência de rotas/domínios adicionais, noindex e pacote sem credenciais incorporadas. Não utiliza o login global da agência.
 
+O build Cloudflare só grava sua assinatura de arquivos após compilação bem-sucedida. A publicação compara essa assinatura com os arquivos atuais de código, fotografias e configuração e recusa pacotes desatualizados. Relatórios e documentação não alteram a assinatura do produto.
+
 ```powershell
 npm run build:cloudflare
 node --env-file=.env.provision.local --env-file=.env.blog.local scripts/deploy-cloudflare-preview.mjs

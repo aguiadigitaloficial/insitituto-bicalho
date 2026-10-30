@@ -25,10 +25,10 @@ for(const [engine,name] of [[chromium,'chromium'],[webkit,'webkit']] as const){
    await page.getByRole('tab',{name:'Geral',exact:true}).click();await page.locator('[data-media-field=coverId]').click();await expect(page.locator('#admin-dialog')).toBeVisible();await reflow(`${width}/${scale}/selecionar imagem`);await page.getByRole('button',{name:'Fechar',exact:true}).click();
    await page.getByRole('button',{name:'Revisões',exact:true}).click();await expect(page.locator('#admin-dialog')).toBeVisible();await reflow(`${width}/${scale}/revisões`);await page.getByRole('button',{name:'Fechar',exact:true}).click();
    if(width===320&&scale===2){await page.getByRole('tab',{name:'Conteúdo',exact:true}).click();await page.screenshot({path:`${dir}/editor-320-200-${name}.png`,fullPage:true});}
-   await style.evaluate(el=>el.remove());
+   await style.evaluate(el=>(el as Element).remove());
   }
   await page.locator('.admin-nav').getByRole('button',{name:'Biblioteca de mídia',exact:true}).click();
-  for(const width of [320,390,834]){await page.setViewportSize({width,height:900});const style=await page.addStyleTag({content:'html{font-size:200%}'});await page.getByRole('button',{name:'Enviar imagem',exact:true}).click();await expect(page.locator('#admin-dialog')).toBeVisible();await reflow(`${width}/2/enviar imagem`);await page.getByRole('button',{name:'Fechar',exact:true}).click();await style.evaluate(el=>el.remove());}
+  for(const width of [320,390,834]){await page.setViewportSize({width,height:900});const style=await page.addStyleTag({content:'html{font-size:200%}'});await page.getByRole('button',{name:'Enviar imagem',exact:true}).click();await expect(page.locator('#admin-dialog')).toBeVisible();await reflow(`${width}/2/enviar imagem`);await page.getByRole('button',{name:'Fechar',exact:true}).click();await style.evaluate(el=>(el as Element).remove());}
   console.log(`PASS: ${name} administrative forms and dialogs at 100%/200%`);
  }catch(e){report.failure=String(e);await page.screenshot({path:`${dir}/failure-${name}.png`,fullPage:true});throw e;}
  finally{await browser.close();const posts=await db.from('blog_posts').select('id').eq('created_by',actor.data.user.id);for(const p of posts.data||[])await db.from('blog_posts').delete().eq('id',p.id);await db.auth.admin.deleteUser(actor.data.user.id);await writeFile(`${dir}/report.json`,JSON.stringify(report,null,2));}

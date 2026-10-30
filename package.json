@@ -22,7 +22,7 @@
     "test:blog:core": "node --import tsx scripts/blog-core-check.ts",
     "test:blog:browser": "node --import tsx scripts/blog-browser-check.ts",
     "dev:cloudflare": "astro dev --config astro.cloudflare.config.mjs --host 127.0.0.1 --port 4326",
-    "build:cloudflare": "astro check && astro build --config astro.cloudflare.config.mjs",
+    "build:cloudflare": "astro check && astro build --config astro.cloudflare.config.mjs && node scripts/stamp-cloudflare-build.mjs",
     "preview:cloudflare": "wrangler dev --config dist-cloudflare/server/wrangler.json --port 4326",
     "test:blog:images": "node --import tsx scripts/blog-image-check.ts",
     "test:blog:worker": "node --import tsx scripts/blog-worker-check.ts",
