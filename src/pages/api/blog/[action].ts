@@ -19,7 +19,7 @@ export const ALL:APIRoute=async(ctx)=>{
   }
   if(!configured())throw new HttpError(503,'O ambiente de teste ainda não foi conectado ao Supabase.');
   if(action==='callback'){
-   const code=ctx.url.searchParams.get('code'),hash=ctx.url.searchParams.get('token_hash'),type=ctx.url.searchParams.get('type');const client=authClient(ctx);const result=code?await client.auth.exchangeCodeForSession(code):hash&&['invite','recovery'].includes(type||'')?await client.auth.verifyOtp({token_hash:hash,type:type as 'invite'|'recovery'}):{error:true};if(result.error)throw new HttpError(400,'Link de acesso inválido ou expirado. Solicite outro.');return ctx.redirect(ctx.url.searchParams.get('next')==='password'?'/admin/?password=1':'/admin/',303);
+   const code=ctx.url.searchParams.get('code'),hash=ctx.url.searchParams.get('token_hash'),type=ctx.url.searchParams.get('type');const client=authClient(ctx);const result=code?await client.auth.exchangeCodeForSession(code):hash&&['invite','recovery'].includes(type||'')?await client.auth.verifyOtp({token_hash:hash,type:type as 'invite'|'recovery'}):{error:true};return new Response(null,{status:303,headers:{...privateHeaders(),Location:result.error?'/admin/?auth_error=expired':ctx.url.searchParams.get('next')==='password'?'/admin/?password=1':'/admin/'}});
   }
   originGuard(ctx);
   if(action==='login'){
