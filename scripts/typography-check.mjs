@@ -25,7 +25,7 @@ for (const name of engines) {
       window.addEventListener('unhandledrejection',event=>{void window.__bicalhoLayoutError({message:String(event.reason?.message||event.reason)});});
     });
     // Prove that the observer catches first-party runtime failures before trusting a clean report.
-    await page.goto('data:text/html,<main>Audit probe</main>');
+    await page.goto(base+'/404.html',{waitUntil:'domcontentloaded'});
     await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('Browser error observer did not report the probe')),5000);confirmProbe=()=>{clearTimeout(timeout);resolve();};void page.evaluate(()=>{setTimeout(()=>{throw new Error('Bicalho typography audit probe');},0);});});
     const probe=errors.findIndex(e=>e.error.includes('Bicalho typography audit probe'));assert(probe>=0);errors.splice(probe,1);confirmProbe=undefined;
     for (const scale of [1,2]) for (const width of scale === 1 ? widths : widths.filter(w => [320,393,768,1024,1366,2560].includes(w))) {
