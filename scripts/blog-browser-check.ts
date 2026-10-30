@@ -9,7 +9,8 @@ import AxeBuilder from '@axe-core/playwright';
 import {demoSnapshot} from '../src/lib/blog/demo';
 import {media} from '../src/data/photos';
 import type {Asset,PublicPost,Taxonomy} from '../src/lib/blog/model';
-const output='artifacts/blog-review';await mkdir(output,{recursive:true});
+const cloudflare=process.env.BLOG_TEST_TARGET==='cloudflare';
+const output=cloudflare?'artifacts/blog-review-cloudflare':'artifacts/blog-review';await mkdir(output,{recursive:true});
 const id=(i:number)=>`10000000-0000-4000-8000-${String(i).padStart(12,'0')}`;
 const taxonomies:Taxonomy[]=[{id:id(1),kind:'author',name:'Instituto Bicalho Odontologia de Precisão',slug:'instituto-bicalho',description:'Autoria institucional.'},...['Tratamentos','Estética','Ortodontia e Cirurgia','Odontologia de Precisão'].map((name,i)=>({id:id(i+2),kind:'category' as const,name,slug:['tratamentos','estetica','ortodontia-e-cirurgia','odontologia-de-precisao'][i],description:''})),{id:id(7),kind:'tag',name:'Demonstração',slug:'demonstracao',description:''}];
 const photos=[media.hero,media.clinic,media.serviceTreatments,media.servicePrecision,media.team,media.serviceAesthetics];
@@ -22,10 +23,13 @@ const fixtures=createServer(async(req,res)=>{
  res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(result));
  }catch{res.writeHead(404);res.end();}
 });await new Promise<void>((resolve,reject)=>{fixtures.once('error',reject);fixtures.listen(54329,'127.0.0.1',resolve);});
-const child=spawn(process.execPath,['node_modules/astro/bin/astro.mjs','dev','--host','127.0.0.1','--port','4325'],{env:{...process.env,SUPABASE_URL:'http://127.0.0.1:54329',SUPABASE_ANON_KEY:'isolated-browser-fixture',SUPABASE_SERVICE_ROLE_KEY:'isolated-browser-fixture',BLOG_DEMO:'true',PUBLIC_INDEXABLE:'false'},stdio:['ignore','pipe','pipe']});let log='';child.stdout?.on('data',b=>log+=b);child.stderr?.on('data',b=>log+=b);
+const fixtureEnv={SUPABASE_URL:'http://127.0.0.1:54329',SUPABASE_ANON_KEY:'isolated-browser-fixture',SUPABASE_SERVICE_ROLE_KEY:'isolated-browser-fixture',BLOG_DEMO:'true',PUBLIC_INDEXABLE:'false',BLOG_ENVIRONMENT:'preview'};
+const fixtureConfig=resolve(output,'wrangler.fixtures.json');
+if(cloudflare){const config=JSON.parse(await readFile('wrangler.jsonc','utf8'));config.vars={...config.vars,...fixtureEnv};await writeFile(fixtureConfig,JSON.stringify(config));}
+const child=spawn(process.execPath,['node_modules/astro/bin/astro.mjs','dev',...(cloudflare?['--config','astro.cloudflare.config.mjs']:[]),'--host','127.0.0.1','--port','4325'],{env:{...process.env,...fixtureEnv,...(cloudflare?{BICALHO_WRANGLER_CONFIG:output+'/wrangler.fixtures.json'}:{})},stdio:['ignore','pipe','pipe']});let log='';child.stdout?.on('data',b=>log+=b);child.stderr?.on('data',b=>log+=b);
 const redirects=JSON.parse(await readFile('redirects.json','utf8'));
 // Match deployment: built static pages/assets, SSR editorial routes and Vercel redirects.
-const root=resolve('dist/client');const mime:Record<string,string>={'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.webp':'image/webp','.avif':'image/avif','.png':'image/png','.woff2':'font/woff2','.txt':'text/plain','.xml':'application/xml','.svg':'image/svg+xml'};
+const root=resolve(cloudflare?'dist-cloudflare/client':'dist/client');const mime:Record<string,string>={'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.webp':'image/webp','.avif':'image/avif','.png':'image/png','.woff2':'font/woff2','.txt':'text/plain','.xml':'application/xml','.svg':'image/svg+xml'};
 const edge=createServer(async(req,res)=>{try{const url=new URL(req.url!,'http://127.0.0.1:4323');const target=redirects[url.pathname.replace(/\/$/,'')];if(target){res.writeHead(301,{location:target+url.search});res.end();return;}let path=resolve(root,'.'+decodeURIComponent(url.pathname));if(path===root||path.startsWith(root+sep)){try{if((await stat(path)).isDirectory())path=join(path,'index.html');const bytes=await readFile(path);res.writeHead(200,{'content-type':mime[extname(path)]||'application/octet-stream'});res.end(bytes);return;}catch{}}
 const chunks:Buffer[]=[];for await(const c of req)chunks.push(Buffer.from(c));const r=await fetch('http://127.0.0.1:4325'+req.url,{method:req.method,headers:req.headers as Record<string,string>,body:['GET','HEAD'].includes(req.method!)?undefined:Buffer.concat(chunks),redirect:'manual'});const headers=Object.fromEntries(r.headers.entries());delete headers['content-encoding'];delete headers['content-length'];res.writeHead(r.status,headers);res.end(Buffer.from(await r.arrayBuffer()));}catch{res.writeHead(502);res.end('Local SSR not ready');}});
 await new Promise<void>((resolve,reject)=>{edge.once('error',reject);edge.listen(4323,'127.0.0.1',resolve);});

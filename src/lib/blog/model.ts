@@ -21,7 +21,7 @@ export const snapshotSchema = z.object({
 }).strict();
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Taxonomy = {id:string; kind:'category'|'tag'|'author'; name:string; slug:string; description:string; image_id?:string|null};
-export type Asset = {id:string; alt:string; caption:string; credit:string; copyright:string; status:string; original_path:string; variants:{path:string;width:number;height:number;format:string}[]; width:number; height:number; is_demo?:boolean};
+export type Asset = {id:string; alt:string; caption:string; credit:string; copyright:string; status:string; original_path:string; variants:{path:string;width:number;height:number;format:string}[]; width:number; height:number; is_demo?:boolean; public_ready_stamp?:string|null};
 export type PublicPost = {id:string; slug:string; snapshot:Snapshot; first_published_at:string; published_at:string; is_demo:boolean; search_text?:string; media?:Asset[]};
 export const emptySnapshot = ():Snapshot => ({title:'',slug:'',authorId:'',categoryIds:[],primaryCategoryId:'',tagIds:[],coverId:'',thumbnailId:'',showCover:true,excerpt:'',featured:false,relatedIds:[],content:{type:'doc',content:[{type:'paragraph'}]},seo:{title:'',description:'',focusKeyword:'',index:true,nofollow:false,noimageindex:false,nosnippet:false},social:{title:'',description:'',imageId:'',alt:'',twitterTitle:'',twitterDescription:'',twitterImageId:'',twitterAlt:''},extraJsonLd:'',extraMeta:[]});
 export function contentText(node:any):string { return [node.text || '',...(node.content||[]).map(contentText)].join(' ').trim(); }

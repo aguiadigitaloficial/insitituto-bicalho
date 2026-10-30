@@ -11,11 +11,12 @@ import SupportAssistant from '../components/SupportAssistant.astro';
 import { site, nav, units, socialLinks, agencyUrl, media, googleProfile } from '../data/content';
 import Icon from '../components/Icon.astro';
 import BookingLink from '../components/BookingLink.astro';
+import {deploymentEnvironment} from '../lib/blog/server';
 interface Props { title: string; description: string; noindex?: boolean; appendBrand?: boolean; image?: keyof typeof media; canonicalPath?:string; blogMeta?: { image?:string; alt?:string; width?:number; height?:number; credit?:string; copyright?:string; title?:string; description?:string; twitterTitle?:string; twitterDescription?:string; twitterImage?:string; twitterAlt?:string; robots?:string[]; schema?:unknown[]; extraMeta?:{name:string;content:string}[]; article?:boolean } }
 const { title, description, noindex = false, appendBrand = true, image = 'hero', blogMeta,canonicalPath } = Astro.props;
 const pageTitle = appendBrand ? `${title} | Instituto Bicalho` : title;
 const breadcrumbName = nav.find(item => item.href === Astro.url.pathname)?.label ?? title;
-const indexable = import.meta.env.PUBLIC_INDEXABLE === 'true' && process.env.VERCEL_ENV !== 'preview' && !noindex;
+const indexable = import.meta.env.PUBLIC_INDEXABLE === 'true' && deploymentEnvironment() !== 'preview' && !noindex;
 const canonical = new URL(canonicalPath||Astro.url.pathname, site.url).href;
 const verification = import.meta.env.PUBLIC_GOOGLE_VERIFICATION;
 const pageImage = media[image];

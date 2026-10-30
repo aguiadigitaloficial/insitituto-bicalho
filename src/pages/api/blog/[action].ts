@@ -2,8 +2,8 @@ import type {APIRoute} from 'astro';
 import {randomUUID,timingSafeEqual} from 'node:crypto';
 import {z} from 'zod';
 import {db,authClient,configured,requireEditor,HttpError,originGuard,privateHeaders,env} from '../../../lib/blog/server';
-import {snapshotSchema,validateAdvanced,validateDocument,validatePublication,COPYRIGHT} from '../../../lib/blog/model';
-import {processUpload,publishRevision} from '../../../lib/blog/publish';
+import {snapshotSchema,validateAdvanced,validateDocument,validatePublication,assetIds,COPYRIGHT} from '../../../lib/blog/model';
+import {processUpload,publishRevision,preparePublicMedia,publicationAssets} from '../../../lib/blog/publish';
 export const prerender=false;
 const uuid=z.uuid();
 async function requestBody(request:Request){const reader=request.body?.getReader();if(!reader)throw new HttpError(400,'Corpo da solicitação ausente.');let length=0;const chunks:Uint8Array[]=[];while(true){const {done,value}=await reader.read();if(done)break;length+=value.length;if(length>2000000){await reader.cancel();throw new HttpError(413,'Conteúdo excedeu o limite de 2 MB.');}chunks.push(value);}try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new HttpError(400,'Solicitação inválida.');}}
@@ -46,6 +46,9 @@ export const ALL:APIRoute=async(ctx)=>{
   }
   if(action==='revisions'){const postId=uuid.parse(ctx.url.searchParams.get('id'));const r=await c.from('blog_revisions').select('*').eq('post_id',postId).order('version',{ascending:false}).limit(100);if(r.error)throw r.error;return reply(r.data);}
   const body=await requestBody(ctx.request);
+  if(action==='prepare-media'){
+   const b=z.object({id:uuid,version:z.number().int().positive(),assetId:uuid}).parse(body);const post=await c.from('blog_posts').select('draft,version,trashed_at').eq('id',b.id).single();if(post.error||post.data.trashed_at)throw new HttpError(404,'Publicação não encontrada.');if(post.data.version!==b.version)throw new HttpError(409,'O rascunho mudou. Salve e prepare a publicação novamente.');validatePublication(post.data.draft);if(!assetIds(post.data.draft).includes(b.assetId))throw new HttpError(400,'A imagem não pertence a esta publicação.');const asset=await c.from('blog_media').select('*').eq('id',b.assetId).single();if(asset.error)throw asset.error;await preparePublicMedia(asset.data);return reply({ok:true});
+  }
   if(action==='save'){
    const s=snapshotSchema.parse(body.snapshot);validateAdvanced(s);validateDocument(s.content);const r=await c.rpc('blog_save',{p_id:body.id?uuid.parse(body.id):null,p_snapshot:s,p_version:z.number().int().nonnegative().parse(body.version||0),p_actor:user.id});if(r.error)throw new HttpError(r.error.message.includes('CONFLICT')?409:400,r.error.message.includes('CONFLICT')?'Outra revisão foi salva. Reabra o artigo antes de continuar para preservar as alterações.':'Não foi possível salvar.');return reply(r.data);
   }
@@ -53,7 +56,7 @@ export const ALL:APIRoute=async(ctx)=>{
    const postId=uuid.parse(body.id);const revision=await c.from('blog_revisions').select('id').eq('post_id',postId).eq('version',z.number().int().positive().parse(body.version)).single();if(revision.error)throw new HttpError(409,'Salve o artigo antes de publicar.');const current=await c.from('blog_posts').select('version').eq('id',postId).single();if(current.data?.version!==body.version)throw new HttpError(409,'Uma revisão mais recente foi salva. Reabra antes de publicar.');return reply({slug:await publishRevision(postId,revision.data.id)});
   }
   if(action==='schedule'){
-   const id=uuid.parse(body.id);const date=new Date(body.at);if(!Number.isFinite(+date)||+date<Date.now()+60000)throw new HttpError(400,'Escolha um horário futuro.');const live=await c.from('blog_posts').select('first_published_at').eq('id',id).single();if(live.data?.first_published_at)throw new HttpError(400,'O agendamento está disponível para artigos inéditos.');const revision=await c.from('blog_revisions').select('*').eq('post_id',id).eq('version',body.version).single();if(revision.error)throw new HttpError(409,'Salve antes de agendar.');validatePublication(revision.data.snapshot);const r=await c.rpc('blog_schedule',{p_id:id,p_version:body.version,p_at:date.toISOString()});if(r.error)throw new HttpError(409,'O artigo mudou. Reabra antes de agendar.');return reply({ok:true});
+   const id=uuid.parse(body.id);const date=new Date(body.at);if(!Number.isFinite(+date)||+date<Date.now()+60000)throw new HttpError(400,'Escolha um horário futuro.');const live=await c.from('blog_posts').select('first_published_at').eq('id',id).single();if(live.data?.first_published_at)throw new HttpError(400,'O agendamento está disponível para artigos inéditos.');const revision=await c.from('blog_revisions').select('*').eq('post_id',id).eq('version',body.version).single();if(revision.error)throw new HttpError(409,'Salve antes de agendar.');validatePublication(revision.data.snapshot);await publicationAssets(revision.data.snapshot);const r=await c.rpc('blog_schedule',{p_id:id,p_version:body.version,p_at:date.toISOString()});if(r.error)throw new HttpError(409,'O artigo mudou. Reabra antes de agendar.');return reply({ok:true});
   }
   if(['unpublish','trash','restore','cancel-schedule'].includes(action||'')){
    const id=uuid.parse(body.id);const r=await c.rpc('blog_transition',{p_id:id,p_action:action});if(r.error)throw r.error;return reply({ok:true});

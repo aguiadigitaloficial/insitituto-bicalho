@@ -1,5 +1,6 @@
 {
   "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {"baseUrl": ".", "paths": {"@bicalho/images": ["src/lib/blog/image-node.ts"]}},
   "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist", "artifacts", "node_modules", "test-results", "playwright-report"]
+  "exclude": ["dist", "dist-cloudflare", "artifacts", "node_modules", "test-results", "playwright-report"]
 }

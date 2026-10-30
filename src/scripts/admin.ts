@@ -2,7 +2,7 @@ import {Editor} from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import {TableKit} from '@tiptap/extension-table';
-import {emptySnapshot,slugify,checklist,COPYRIGHT,saoPauloToISO,type Snapshot,type Asset,type Taxonomy} from '../lib/blog/model';
+import {emptySnapshot,slugify,checklist,assetIds,COPYRIGHT,saoPauloToISO,type Snapshot,type Asset,type Taxonomy} from '../lib/blog/model';
 const h=(s:unknown)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 
 // No service key, privileged database client or content is embedded in this bundle.
@@ -14,6 +14,7 @@ let state:any={posts:[],media:[],taxonomies:[],publications:[],schedules:[]};let
 const notify=(message:string)=>{status.textContent=message;};
 async function api(action:string,body?:unknown){const [path,query]=action.split('?');const res=await fetch(`/api/blog/${path}/${query?'?'+query:''}`,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});const data=await res.json();if(!res.ok)throw new Error(data.error||'Não foi possível concluir.');return data;}
 const run=(fn:()=>Promise<unknown>)=>void fn().catch(e=>notify(e.message));
+async function preparePublication(){await save();for(const assetId of assetIds(snapshot))await api('prepare-media',{id:current.id,version:current.version,assetId});}
 const get=(name:string)=>name.split('.').reduce((o:any,k)=>o?.[k],snapshot);
 const set=(name:string,value:unknown)=>{const path=name.split('.');let o:any=snapshot;for(const k of path.slice(0,-1))o=o[k];o[path.at(-1)!]=value;};
 const field=(label:string,name:string,type='text',help='')=>`<label>${label}<${type==='textarea'?'textarea':type==='select'?'select':'input'} ${type==='textarea'?'':`type="${type}"`} data-field="${name}" ${type==='checkbox'?get(name)?'checked':'':`value="${h(get(name))}"`}>${type==='textarea'?h(get(name)):''}${['textarea','select'].includes(type)?`</${type}>`:''}${help?`<small>${help}</small>`:''}</label>`;
@@ -44,9 +45,9 @@ function openPost(p?:any){generation++;editor?.destroy();current=p?structuredClo
  document.querySelector<HTMLButtonElement>('[data-save]')!.onclick=()=>run(save);
  document.querySelector<HTMLButtonElement>('[data-back]')!.onclick=()=>run(async()=>{await save();editor?.destroy();current=undefined;await refresh();list();});
  document.querySelector<HTMLButtonElement>('[data-preview]')!.onclick=()=>run(async()=>{await save();if(current.id)window.open(`/conteudos/previa/${current.id}/`,'_blank','noopener');});
- document.querySelector<HTMLButtonElement>('[data-publish]')!.onclick=()=>run(async()=>{await save();await api('publish',{id:current.id,version:current.version});await refresh();notify('Publicação atualizada. A versão pública pode levar até um minuto para aparecer.');});
+ document.querySelector<HTMLButtonElement>('[data-publish]')!.onclick=()=>run(async()=>{await preparePublication();await api('publish',{id:current.id,version:current.version});await refresh();notify('Publicação atualizada. A versão pública pode levar até um minuto para aparecer.');});
  document.querySelector<HTMLButtonElement>('[data-revisions]')!.onclick=()=>run(revisions);
- document.querySelector<HTMLButtonElement>('[data-schedule]')!.onclick=()=>run(async()=>{await save();const value=document.querySelector<HTMLInputElement>('#schedule-at')!.value;await api('schedule',{id:current.id,version:current.version,at:saoPauloToISO(value)});notify('Agendamento salvo no horário de São Paulo.');await refresh();scheduleStatus();});
+ document.querySelector<HTMLButtonElement>('[data-schedule]')!.onclick=()=>run(async()=>{await preparePublication();const value=document.querySelector<HTMLInputElement>('#schedule-at')!.value;await api('schedule',{id:current.id,version:current.version,at:saoPauloToISO(value)});notify('Agendamento salvo no horário de São Paulo.');await refresh();scheduleStatus();});
  for(const [selector,action,message] of [['[data-cancel-schedule]','cancel-schedule','Agendamento cancelado.'],['[data-unpublish]','unpublish','Artigo retirado de publicação.'],['[data-trash]','trash','Artigo enviado à lixeira.']])document.querySelector<HTMLButtonElement>(selector)!.onclick=()=>run(async()=>{await save();if(!current.id)return;await api(action,{id:current.id});notify(message);await refresh();if(action==='trash'){editor?.destroy();current=undefined;list();}else scheduleStatus();});
  updateChecklist();scheduleStatus();
 }
