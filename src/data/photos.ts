@@ -28,7 +28,8 @@ export const photoWidths = (photo: PhotoDefinition) => photo.src.startsWith('off
 // Account for the full raster behind object-fit:cover, including the approved zoomed crops.
 // These server-rendered fallbacks also work before JavaScript and with scripts disabled.
 export const photoSizes = {
-  hero: '(min-width: 1200px) 661px, (min-width: 600px) max(calc(100vw - 56px), 631px), max(calc(100vw - 40px), clamp(421px, 114vw, 541px))',
+  hero: '(min-width: 1200px) 571px, (min-width: 600px) calc(100vw - 56px), max(calc(100vw - 40px), 421px)',
+  partnersTogether: '(min-width: 1024px) min(560px, calc((min(100vw - 56px, 1240px) - 40px) / 2.12)), (min-width: 600px) min(640px, calc(100vw - 56px)), calc(100vw - 40px)',
   innerLandscape: '(min-width: 1200px) 721px, (min-width: 600px) max(calc(100vw - 56px), 511px), max(calc(100vw - 40px), 511px)',
   innerPortrait: '(min-width: 1304px) 567px, (min-width: 1200px) calc((100vw - 104px) / 2.12), (min-width: 600px) calc(100vw - 56px), calc(100vw - 40px)',
   area: [

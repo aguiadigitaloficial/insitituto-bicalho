@@ -57,7 +57,7 @@ await page.locator('#primary-booking').click(); assert(await page.locator('#book
 assert.equal(await page.locator('#booking-dialog [data-whatsapp]').count(),2);
 await page.keyboard.press('Escape'); assert(await page.locator('#booking-dialog').isHidden());
 assert(await page.locator('#primary-booking').evaluate(el=>el===document.activeElement));
-await page.locator('#instituto').scrollIntoViewIfNeeded(); await page.waitForTimeout(250); assert(await page.locator('.mobile-cta').isVisible());
+await page.locator('.institution-copy').evaluate(el=>el.scrollIntoView({block:'start',behavior:'instant'})); await page.waitForTimeout(250); assert(await page.locator('.mobile-cta').isVisible());
 await page.locator('#unidades').scrollIntoViewIfNeeded(); await page.waitForTimeout(250); assert(await page.locator('.mobile-cta').isHidden());
 await page.locator('.faq-list summary').first().click(); assert(await page.locator('.faq-list details').first().getAttribute('open')!==null);
 await page.locator('[data-cookie-settings]').click(); assert(await page.locator('.cookie-notice').isVisible());

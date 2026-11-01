@@ -64,18 +64,22 @@ let heroPassed = false;
 let unitsVisible = false;
 let footerVisible = false;
 let clearanceFrame = 0;
-const pageActions = $$('main a, main button, main summary, .site-footer a, .site-footer button');
+const captionAreas = $$('.hero-image-base, .portrait-note');
+const pageActions = $$('main a, main button, main summary, .site-footer a, .site-footer button, .hero-image-base, .portrait-note');
+function overlaps(rect: DOMRect, target: Element) {
+  const box = target.getBoundingClientRect();
+  return box.width > 0 && box.height > 0 && box.left < rect.right && box.right > rect.left && box.top < rect.bottom && box.bottom > rect.top;
+}
 function updateLauncherClearance() {
   clearanceFrame = 0;
+  // Attached photo captions need the same clearance as interactive content.
+  bar.toggleAttribute('data-obstructed', !bar.hidden && captionAreas.some(caption => overlaps(bar.getBoundingClientRect(), caption)));
   if (launcher.hidden || document.activeElement === launcher) {
     launcher.removeAttribute('data-obstructed');
     return;
   }
   const helper = launcher.getBoundingClientRect();
-  const obstructed = pageActions.some(action => {
-    const rect = action.getBoundingClientRect();
-    return rect.width > 0 && rect.height > 0 && rect.left < helper.right && rect.right > helper.left && rect.top < helper.bottom && rect.bottom > helper.top;
-  });
+  const obstructed = pageActions.some(action => overlaps(helper, action));
   launcher.toggleAttribute('data-obstructed', obstructed);
 }
 function scheduleLauncherClearance() {

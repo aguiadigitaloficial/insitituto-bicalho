@@ -15,25 +15,27 @@ const photos = ['careOverview', 'smile', 'aligners', 'precision'] as const;
   <section class="hero" aria-labelledby="hero-heading">
     <div class="container hero-layout">
       <div class="hero-copy">
-        <span class="hero-eyebrow"><span class="status-dot" aria-hidden="true"></span>Odontologia de Precisão</span>
+        <span class="hero-eyebrow">Odontologia de Precisão</span>
         <h1 id="hero-heading"><Text keepEnd={false} text="Clínica odontológica "/><br/><span><Text keepEnd={false} text="em João Monlevade e Belo Horizonte."/></span></h1>
         <p><Text text="Planejamento individualizado, equipe multidisciplinar de dentistas e tecnologia digital do diagnóstico ao resultado."/></p>
-        <div class="hero-actions"><BookingLink position="hero" id="primary-booking"/><a class="text-link" href="#instituto">Conheça o Instituto<Icon name="arrow" size={18}/></a></div>
+        <div class="hero-actions"><BookingLink position="hero" id="primary-booking"/><a class="text-link" href="#instituto">Conheça o Instituto</a></div>
         <span class="hero-location"><Icon name="pin" size={18}/>João Monlevade e Belo Horizonte</span>
       </div>
-      <div class="hero-visual">
+      <div class="hero-visual glass">
         <Photo name="hero" class="hero-photo" eager sizes={photoSizes.hero}/>
-        <div class="photo-tags" aria-hidden="true"><span>Escuta</span><span>Cuidado</span><span>Tecnologia</span></div>
-        <div class="hero-glass glass"><span class="circle-icon"><Icon name="tooth" size={25}/></span><div><strong>Você no centro do cuidado.</strong><p><Text text="Da primeira conversa a cada novo sorriso."/></p></div></div>
+        <div class="hero-image-base">
+          <div class="photo-tags" aria-hidden="true"><span>Escuta</span><span>Cuidado</span><span>Tecnologia</span></div>
+          <div class="hero-glass"><img class="hero-care-symbol" src="/assets/brand-symbol.webp" width="32" height="32" alt="" aria-hidden="true"/><div><strong>Você no centro do cuidado.</strong><p><Text text="Da primeira conversa a cada novo sorriso."/></p></div></div>
+        </div>
       </div>
     </div>
-    <div class="container hero-footnote"><span>Saúde, função e estética. Juntas.</span><a href="#instituto">Explore o Instituto<Icon name="arrow" size={18}/></a></div>
+    <div class="container hero-footnote"><span>Saúde, função e estética. Juntas.</span><a href="#instituto">Explore o Instituto</a></div>
   </section>
   <section class="section institution" id="instituto" aria-labelledby="institution-heading">
     <div class="container">
       <div class="institution-layout">
-        <div class="institution-copy"><span class="eyebrow">Instituto Bicalho Odontologia de Precisão</span><h2 id="institution-heading"><Text keepEnd={false} text="Uma equipe, "/><br/><span><Text text="várias especialidades."/></span></h2><p class="lead-copy"><Text text="Avaliação individualizada antes de qualquer tratamento."/></p><p><Text text="A equipe reúne implantodontia, ortodontia, odontopediatria, prótese dentária, endodontia, periodontia e harmonização orofacial, com planejamento conjunto quando o caso exige mais de uma especialidade."/></p><p><Text text="O acompanhamento começa pela queixa e pelo histórico do paciente, segue para o exame clínico e, quando indicado, para o planejamento digital antes de qualquer procedimento."/></p></div>
-        <div class="partner-photos"><Photo name="partnersTogether" sizes="(min-width: 480px) 420px, calc(100vw - 40px)"/><div class="portrait-note glass"><span class="status-dot" aria-hidden="true"></span><span><Text text="Dr. Bruno Bicalho e Dra. Roberta Souza Carneiro, sócios do Instituto Bicalho."/></span></div></div>
+        <div class="institution-copy"><span class="eyebrow">Instituto Bicalho Odontologia de Precisão</span><h2 id="institution-heading"><Text keepEnd={false} text="Uma equipe, "/><span><Text text="várias especialidades."/></span></h2><p class="lead-copy"><Text text="Avaliação individualizada antes de qualquer tratamento."/></p><p><Text text="A equipe reúne implantodontia, ortodontia, odontopediatria, prótese dentária, endodontia, periodontia e harmonização orofacial, com planejamento conjunto quando o caso exige mais de uma especialidade."/></p><p><Text text="O acompanhamento começa pela queixa e pelo histórico do paciente, segue para o exame clínico e, quando indicado, para o planejamento digital antes de qualquer procedimento."/></p></div>
+        <div class="partner-photos glass"><Photo name="partnersTogether" sizes={photoSizes.partnersTogether}/><div class="portrait-note"><img src="/assets/brand-symbol.webp" width="28" height="28" alt="" aria-hidden="true"/><span><Text text="Dr. Bruno Bicalho e Dra. Roberta Souza Carneiro, sócios do Instituto Bicalho."/></span></div></div>
       </div>
       <div id="equipe">
         <details class="team-panel" id="equipe-completa"><summary><span>Conheça nossa equipe<small>Profissionais e áreas de atuação</small></span><span class="round-arrow"><Icon name="plus" size={22}/></span></summary><div class="team-panel-content"><Photo name="team" class="team-photo" sizes="(min-width: 1000px) 880px, 100vw"/><div class="team-grid">{team.map(person => <article class="team-person"><h3><Text keepEnd={false} text={person.name}/></h3>{person.role && <span class="team-role">{person.role}</span>}<p><span class="team-kind">{person.kind}</span><Text text={person.work}/></p></article>)}</div></div></details>

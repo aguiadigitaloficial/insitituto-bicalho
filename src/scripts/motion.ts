@@ -40,7 +40,15 @@ export async function initMotion() {
         });
       });
     }
-    all('main .photo').forEach(photo => {
+    // The reception photo and its attached base enter as one composed frame.
+    const homeVisual = document.querySelector('.hero-visual');
+    if (homeVisual && !revealed.has(homeVisual)) {
+      gsap.from(homeVisual, { y: mobile ? 12 : 20, opacity: 0, duration: .65, ease: 'power3.out',
+        ...(mobile ? { scrollTrigger: triggerFor(homeVisual) } : { delay: .12 }),
+        onComplete: () => { revealed.add(homeVisual); },
+      });
+    }
+    all('main .photo').filter(photo => !photo.matches('.hero-photo')).forEach(photo => {
       if (revealed.has(photo)) return;
       const heroPhoto = photo.matches('.hero-photo, .inner-hero-photo');
       const timeline = gsap.timeline({
@@ -52,10 +60,6 @@ export async function initMotion() {
         duration: mobile ? .6 : .75, ease: 'power3.out',
       });
       timeline.from(photo.querySelector('img'), { scale: 1.035, duration: mobile ? .7 : .9, ease: 'power2.out' }, 0);
-      if (heroPhoto) {
-        const overlays = photo.parentElement!.querySelectorAll('.hero-glass, .photo-tags');
-        if (overlays.length) timeline.from(overlays, { y: mobile ? 10 : 20, opacity: 0, duration: .45, stagger: .06, ease: 'power3.out' }, .15);
-      }
     });
 
     all('.institution-copy>p, .section-intro>p, .precision-intro>p, .section-heading>p, .area-card-copy, .unit, .service, .portrait-note').forEach((element, index) => {

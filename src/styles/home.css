@@ -1,12 +1,53 @@
-/* Longer client copy stays readable without changing the service-page typography. */
-.home-page .hero-copy>p{max-width:46ch}
-.home-page :is(.hero-layout,.institution-layout,.section-intro,.precision-intro,.units-layout)>*{min-width:0}
-.home-page .institution-copy p{max-width:52ch}
-.home-page .institution-copy .lead-copy{max-width:40ch}
-.home-page .portrait-note{text-align:center}
-.home-page .portrait-note>span:last-child{min-width:0}
-.home-page .team-person{min-width:0}
-.service-related{max-width:100%;margin-top:18px}
-@media(min-width:1000px){
-  .home-page .hero-layout{grid-template-columns:1.12fr 1fr}
+/* Home composition: one frame per photograph, with captions in normal flow. */
+.home-page :is(.hero-layout,.institution-layout,.section-intro,.precision-intro,.units-layout)>* { min-width: 0; }
+.home-page .hero { padding-top: 28px; background: radial-gradient(ellipse at 85% 25%,#e2f3f5 0,transparent 65%); }
+.home-page .hero-layout,.home-page .institution-layout { display: grid; grid-template-columns: minmax(0,1fr); align-items: start; gap: 24px; }
+.home-page .hero h1 { max-width: none; }
+.home-page .hero-eyebrow { display: block; margin-bottom: 18px; color: var(--teal); font-size: var(--type-small); font-weight: 600; line-height: 1.5; }
+.home-page .hero-copy>p { max-width: 65ch; margin-top: 16px; }
+.home-page .hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; margin-top: 20px; }
+.home-page .hero-actions .button { width: 100%; }
+.home-page .hero-actions .text-link,.home-page .hero-footnote a { color: var(--teal); text-decoration: underline; text-underline-offset: .25em; text-decoration-thickness: 1px; }
+.home-page .hero-actions .text-link:hover,.home-page .hero-footnote a:hover { text-decoration-thickness: 2px; }
+.home-page .hero-location { display: flex; align-items: center; gap: 7px; margin-top: 17px; color: var(--muted); font-size: var(--type-small); line-height: 1.5; }
+.home-page .hero-location svg { flex-shrink: 0; width: 15px; color: var(--teal); }
+.home-page .hero-visual,.home-page .partner-photos { overflow: hidden; border-radius: 28px; }
+.home-page .hero-photo { width: 100%; height: 280px; border-radius: 0; }
+.home-page .hero-photo img { object-position: var(--photo-position); }
+.home-page .hero-image-base { padding: 14px; }
+.home-page .photo-tags { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-bottom: 12px; color: var(--teal); font-size: var(--type-small); font-weight: 600; line-height: 1.5; }
+.home-page .photo-tags span { white-space: nowrap; }
+.home-page .hero-glass { display: flex; align-items: center; gap: 12px; }
+.home-page .hero-care-symbol { flex: 0 0 32px; width: 32px; height: 32px; object-fit: contain; mix-blend-mode: multiply; }
+.home-page .hero-glass>div { min-width: 0; }
+.home-page .hero-glass strong { display: block; font-size: var(--type-body); line-height: 1.6; }
+.home-page .hero-glass p { margin-top: 4px; font-size: var(--type-small); line-height: 1.5; }
+.home-page .hero-footnote { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0 32px; margin-top: 20px; padding-block: 16px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: var(--type-small); line-height: 1.5; }
+.home-page .hero-footnote a { display: inline-flex; align-items: center; min-height: 44px; }
+.home-page .institution-copy p { max-width: 65ch; margin-top: 18px; }
+.home-page .institution-copy .lead-copy { max-width: none; margin-top: 24px; color: var(--ink); font-size: var(--type-body); font-weight: 600; line-height: 1.6; }
+.home-page .partner-photos { width: 100%; max-width: 640px; margin: 0; }
+.home-page .partner-photos .photo { width: 100%; height: auto; aspect-ratio: 1; margin: 0; border-radius: 0; }
+.home-page .partner-photos .photo picture,.home-page .partner-photos .photo img { height: 100%; }
+.home-page .partner-photos .photo img { object-position: 50% 10%; }
+.home-page .portrait-note { display: flex; align-items: center; gap: 12px; padding: 14px; color: var(--ink); font-size: var(--type-small); font-weight: 600; line-height: 1.5; text-align: left; }
+.home-page .portrait-note img { flex: 0 0 28px; width: 28px; height: 28px; object-fit: contain; mix-blend-mode: multiply; }
+.home-page .portrait-note>span { min-width: 0; }
+.home-page .portrait-note .text-keep { display: inline-block; }
+.home-page .team-person { min-width: 0; }
+.service-related { max-width: 100%; margin-top: 18px; }
+
+@media(min-width:600px) {
+  .home-page .hero-photo { height: 340px; }
+  .home-page .hero-image-base,.home-page .portrait-note { padding: 16px; }
+  .home-page .hero-actions .button { width: auto; }
+  .home-page .partner-photos .photo { aspect-ratio: 4/3; }
+}
+@media(min-width:1024px) {
+  .home-page .institution-layout { grid-template-columns: minmax(0,1.12fr) minmax(0,1fr); gap: 40px; }
+  .home-page .partner-photos { max-width: 560px; }
+}
+@media(min-width:1200px) {
+  .home-page .hero-layout { grid-template-columns: minmax(0,1.12fr) minmax(0,1fr); gap: 40px; }
+  .home-page .hero-photo { height: 380px; }
 }

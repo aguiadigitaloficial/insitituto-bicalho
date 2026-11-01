@@ -16,13 +16,13 @@ p,address { font-size: var(--type-body); line-height: 1.6; text-wrap: pretty; }
 .text-keep { display: inline-block; max-width: 100%; vertical-align: baseline; text-wrap: balance; overflow-wrap: break-word; }
 .text-word { white-space: nowrap; }
 h1 span.text-keep,h2 span.text-keep { color: inherit; }
-.hero-copy>p,.inner-hero-copy>p,.institution-copy p,.home-page .institution-copy p,.section-intro>p,.precision-intro>p,.section-heading>p,.service p,.contact-intro>p { max-width: 65ch; }
-.eyebrow,.hero-eyebrow,.hero-location,.hero-footnote,.photo-tags span,.area-number,.area-link,.precision-note,.flow-number,.team-role,.team-kind,.team-panel summary small,.digital-flow small,.unit-phone,.unit-landmark,.unit .unit-channel-note,.unit-map-links .text-link,.footer-top nav,.footer-bottom,.social-links a,.agency-credit a,.breadcrumb,.legal-date,.dialog-note,.booking-options small,.support-header p,.support-footer,.launcher-label small,.chat-hint,.channel-tag,.channel-card span>span,.channel-card em { font-size: var(--type-small); line-height: 1.5; }
-.eyebrow,.hero-eyebrow { text-wrap: balance; }
+.inner-hero-copy>p,.section-intro>p,.precision-intro>p,.section-heading>p,.service p,.contact-intro>p { max-width: 65ch; }
+.eyebrow,.area-number,.area-link,.precision-note,.flow-number,.team-role,.team-kind,.team-panel summary small,.digital-flow small,.unit-phone,.unit-landmark,.unit .unit-channel-note,.unit-map-links .text-link,.footer-top nav,.footer-bottom,.social-links a,.agency-credit a,.breadcrumb,.legal-date,.dialog-note,.booking-options small,.support-header p,.support-footer,.launcher-label small,.chat-hint,.channel-tag,.channel-card span>span,.channel-card em { font-size: var(--type-small); line-height: 1.5; }
+.eyebrow{ text-wrap: balance; }
 .button,.text-link,.mobile-nav>a:not(.button),.noscript-nav,.service-index nav a,.other-areas a,.support-toolbar button,.launcher-label { font-size: var(--type-small); line-height: 1.45; }
-.hero-glass strong,.team-panel>summary,.faq-list summary,.booking-options strong,.channel-card strong,.chat-bubble,.chat-choice,.chat-note-label,.chat-note { font-size: var(--type-body); line-height: 1.6; }
-.hero-glass p,.portrait-note,.home-page .portrait-note,.footer-bottom button { font-size: var(--type-small); line-height: 1.5; }
-.institution-copy .lead-copy,.home-page .institution-copy .lead-copy { font-size: var(--type-body); line-height: 1.6; }
+.team-panel>summary,.faq-list summary,.booking-options strong,.channel-card strong,.chat-bubble,.chat-choice,.chat-note-label,.chat-note { font-size: var(--type-body); line-height: 1.6; }
+.footer-bottom button { font-size: var(--type-small); line-height: 1.5; }
+
 .digital-flow h3,.team-person h3,.unit h3,.contact-units .unit h2 { font-size: var(--type-card); }
 .faq-list summary { text-wrap: balance; }
 .clinical-note,.unit address,.faq-answer p,.team-person p,.digital-flow p,.area-card p,.cookie-notice p,.dialog-body>p,.chat-summary p { font-size: var(--type-body); line-height: 1.6; }
@@ -35,9 +35,9 @@ h1 span.text-keep,h2 span.text-keep { color: inherit; }
 
 .container { width: min(calc(100% - 2.5rem), 1240px); }
 .section,.other-areas { padding-block: 3rem; }
-.hero-layout,.inner-hero-layout { grid-template-columns: minmax(0,1fr); gap: 1.5rem; }
-.hero h1,.inner-hero h1,.contact-intro h1 { max-width: none; }
-.hero-copy>p,.inner-hero-copy>p { margin-top: 1rem; }
+.inner-hero-layout { grid-template-columns: minmax(0,1fr); gap: 1.5rem; }
+.inner-hero h1,.contact-intro h1 { max-width: none; }
+.inner-hero-copy>p { margin-top: 1rem; }
 .section-intro,.precision-intro,.faq-layout { gap: 1.5rem; }
 .section-intro,.precision-intro { margin-bottom: 1.5rem; }
 .service-layout { grid-template-columns: minmax(0,1fr); gap: 1.5rem; }
@@ -84,11 +84,7 @@ h1 span.text-keep,h2 span.text-keep { color: inherit; }
 .digital-flow li,.digital-flow li>div { min-width: 0; }
 .other-areas .container>div { grid-template-columns: repeat(auto-fit,minmax(min(100%,16rem),1fr)); }
 .unit .unit-channel-note { margin-block: .5rem .75rem; }
-.partner-photos { display: flex; flex-direction: column; gap: .75rem; width: min(100%,420px); margin-inline: auto; padding: 0; }
-.partner-photos .photo { width: 100%; height: auto; aspect-ratio: 4/5; border-radius: 28px; margin: 0; }
-.partner-photos .photo picture,.partner-photos .photo img { height: 100%; }
-.partner-photos .portrait-note { position: static; width: 100%; margin: 0; min-height: 0; padding: .875rem; border-radius: 20px; text-align: center; }
-.partner-photos .portrait-note .text-keep { display: inline-block; }
+
 .footer-top,.footer-bottom { gap: 1rem; }
 .footer-bottom nav { gap: .25rem 1rem; }
 .footer-top nav[aria-label='Links do rodapé'] a[href='/odontologia-de-precisao/'] { grid-column: 1/-1; }
@@ -100,10 +96,8 @@ h1 span.text-keep,h2 span.text-keep { color: inherit; }
 
 @media(max-width:599px) {
   .service>svg { display: none; }
-  .institution-layout,.precision-intro,.faq-layout { grid-template-columns: minmax(0,1fr); }
-  .hero-actions { gap: .5rem 1rem; }
-  .hero-glass { margin-inline: .75rem; width: calc(100% - 1.5rem); padding: .875rem; gap: .625rem; }
-  .hero-glass .circle-icon { width: 2rem; height: 2rem; }
+  .precision-intro,.faq-layout { grid-template-columns: minmax(0,1fr); }
+
   .unit .button { padding-inline: .875rem; gap: .5rem; }
   .booking-options { gap: .625rem; }
   .booking-options a { padding: .875rem .75rem; gap: .625rem; }
@@ -125,7 +119,7 @@ h1 span.text-keep,h2 span.text-keep { color: inherit; }
   .support-header .assistant-avatar { display: block; }
 }
 @media(min-width:600px) and (max-width:1199px) {
-  .hero-layout,.home-page .hero-layout,.inner-hero-layout,.service-layout { grid-template-columns: minmax(0,1fr); }
+  .inner-hero-layout,.service-layout { grid-template-columns: minmax(0,1fr); }
   .inner-hero-photo { height: 340px; }
   .precision-intro,.faq-layout { grid-template-columns: minmax(0,1fr); }
 }
@@ -133,7 +127,7 @@ h1 span.text-keep,h2 span.text-keep { color: inherit; }
   :root { --type-display: clamp(2.25rem,calc(2.4vw + .45rem),2.5rem); --type-section: clamp(1.875rem,2.4vw,2.125rem); --type-card: clamp(1.375rem,1.7vw,1.5rem); }
   .container { width: min(calc(100% - 4rem),1240px); }
   .section,.other-areas { padding-block: 4rem; }
-  .hero-layout,.home-page .hero-layout,.inner-hero-layout { grid-template-columns: minmax(0,1.12fr) minmax(0,1fr); gap: 2.5rem; }
+  .inner-hero-layout { grid-template-columns: minmax(0,1.12fr) minmax(0,1fr); gap: 2.5rem; }
   .inner-hero-photo { height: 480px; }
   .service-layout { grid-template-columns: minmax(0,.9fr) minmax(0,1.8fr); gap: 2.5rem; }
   .service-index { position: sticky; top: 128px; }
@@ -147,7 +141,7 @@ h1 span.text-keep,h2 span.text-keep { color: inherit; }
   .desktop-nav a { font-size: .875rem; padding-inline: .5rem; }
   .header-booking { font-size: .875rem; gap: .5rem; max-width: 215px; padding-left: 1rem; }
   .unit { padding: 2rem; }
-  .partner-photos .photo { border-radius: 36px; }
+
   .footer-top { gap: 2rem; }
   .footer-top>p { font-size: 1.375rem; }
   .footer-top nav[aria-label='Links do rodapé'] a[href='/odontologia-de-precisao/'] { grid-column: auto; }
