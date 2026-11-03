@@ -16,13 +16,15 @@ const widthCases=[320,375,390,393,414,768,834,1024,1366,2560].map(width=>({width
 async function stepCheck(page:Page,step:number,engine:string,route:string,width:number,scale:number){
  const state=await page.locator('[data-service-contact]').evaluate(section=>{
   const frame=section.getBoundingClientRect();
+  const focused=document.activeElement?.getBoundingClientRect();
   const controls=[...section.querySelectorAll<HTMLElement>('input,button,a,fieldset')].filter(el=>el.getClientRects().length>0);
-  return {overflow:document.documentElement.scrollWidth>innerWidth+1,frame:[frame.left,frame.right],outside:controls.filter(el=>{const b=el.getBoundingClientRect();return b.left<-.5||b.right>innerWidth+.5;}).map(el=>el.outerHTML.slice(0,120)),tiny:controls.filter(el=>parseFloat(getComputedStyle(el).fontSize)<14&&el.tagName!=='INPUT').map(el=>el.tagName),visiblePanels:[...section.querySelectorAll<HTMLElement>('[data-contact-step]')].filter(el=>el.getClientRects().length>0).map(el=>el.dataset.contactStep)};
+  return {overflow:document.documentElement.scrollWidth>innerWidth+1,frame:[frame.left,frame.right],focusVisible:!!focused&&focused.bottom>0&&focused.top<innerHeight,outside:controls.filter(el=>{const b=el.getBoundingClientRect();return b.left<-.5||b.right>innerWidth+.5;}).map(el=>el.outerHTML.slice(0,120)),tiny:controls.filter(el=>parseFloat(getComputedStyle(el).fontSize)<14&&el.tagName!=='INPUT').map(el=>el.tagName),visiblePanels:[...section.querySelectorAll<HTMLElement>('[data-contact-step]')].filter(el=>el.getClientRects().length>0).map(el=>el.dataset.contactStep)};
  });
  assert(!state.overflow,`${engine} ${route} ${width}/${scale}: horizontal overflow`);
  assert.deepEqual(state.outside,[],`${engine} ${route} ${width}/${scale}: clipped controls`);
  assert.deepEqual(state.visiblePanels,[String(step)]);
  assert.deepEqual(state.tiny,[]);
+ if(step>0)assert(state.focusVisible,`${engine} ${route} ${width}/${scale}: focused control outside viewport`);
  checks.push({engine,route,width,scale,step});
 }
 for(const [engine,driver] of Object.entries({chromium,webkit})){

@@ -36,8 +36,9 @@ export function initServiceContact() {
         }
         send.href = serviceContactUrl(data); send.dataset.whatsapp = unit.value;
       } else { send.removeAttribute('href'); send.dataset.whatsapp = ''; }
-      // Inline forms do not move focus on load or scroll the page on each step.
-      if (focus) (step === 0 ? name : step === 1 ? phone : step === 2 ? selected('interest') || steps[2].querySelector<HTMLInputElement>('input') : step === 3 ? selected('unit') || steps[3].querySelector<HTMLInputElement>('input') : heading)?.focus({preventScroll: true});
+      // Never move focus on load. After an action, reveal the next control even
+      // when the preceding step was taller than the mobile/zoomed viewport.
+      if (focus) (step === 0 ? name : step === 1 ? phone : step === 2 ? selected('interest') || steps[2].querySelector<HTMLInputElement>('input') : step === 3 ? selected('unit') || steps[3].querySelector<HTMLInputElement>('input') : heading)?.focus();
     }
     form.addEventListener('submit', event => {
       event.preventDefault();
@@ -50,7 +51,7 @@ export function initServiceContact() {
       if (message) {
         const target = step === 0 ? name : step === 1 ? phone : steps[step];
         target.setAttribute('aria-invalid', 'true'); error.hidden = false; error.textContent = message;
-        (target instanceof HTMLInputElement ? target : target.querySelector<HTMLInputElement>('input'))?.focus({preventScroll: true});
+        (target instanceof HTMLInputElement ? target : target.querySelector<HTMLInputElement>('input'))?.focus();
         return;
       }
       step++; showStep(true);
