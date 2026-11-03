@@ -1,4 +1,6 @@
 import { initAssistant } from './assistant';
+import { initServiceContact } from './service-contact';
+initServiceContact();
 const $ = <T extends Element = HTMLElement>(selector: string) => document.querySelector<T>(selector);
 const $$ = <T extends Element = HTMLElement>(selector: string) => [...document.querySelectorAll<T>(selector)];
 
@@ -63,9 +65,10 @@ const notice = $('.cookie-notice')!;
 let heroPassed = false;
 let unitsVisible = false;
 let footerVisible = false;
+let contactVisible = false;
 let clearanceFrame = 0;
 const captionAreas = $$('.hero-image-base, .portrait-note');
-const pageActions = $$('main a, main button, main summary, .site-footer a, .site-footer button, .hero-image-base, .portrait-note');
+const pageActions = $$('main a, main button, main summary, [data-service-contact] input, [data-service-contact] label, .site-footer a, .site-footer button, .hero-image-base, .portrait-note');
 function overlaps(rect: DOMRect, target: Element) {
   const box = target.getBoundingClientRect();
   return box.width > 0 && box.height > 0 && box.left < rect.right && box.right > rect.left && box.top < rect.bottom && box.bottom > rect.top;
@@ -87,7 +90,7 @@ function scheduleLauncherClearance() {
 }
 function updateBar() {
   const blocked = dialog.open || support.open || !notice.hasAttribute('hidden') || !menu.hidden;
-  const visible = heroPassed && !unitsVisible && !footerVisible && !blocked;
+  const visible = heroPassed && !unitsVisible && !footerVisible && !contactVisible && !blocked;
   bar.toggleAttribute('hidden', !visible);
   launcher.toggleAttribute('hidden', blocked);
   document.body.classList.toggle('booking-dock-visible', visible);
@@ -103,6 +106,8 @@ if ('IntersectionObserver' in window) {
   if (primary) new IntersectionObserver(entries => { const entry = entries[0]; heroPassed = !entry.isIntersecting && entry.boundingClientRect.top < $('.site-header')!.getBoundingClientRect().height; updateBar(); }, { threshold: 0, rootMargin: `-${$('.site-header')!.getBoundingClientRect().height}px 0px 0px 0px` }).observe(primary);
   const units = $('#unidades');
   if (units) new IntersectionObserver(entries => { unitsVisible = entries[0].isIntersecting; updateBar(); }, { threshold: .05 }).observe(units);
+  const contact = $('[data-service-contact]');
+  if (contact) new IntersectionObserver(entries => { contactVisible = entries[0].isIntersecting; updateBar(); }, { threshold: 0 }).observe(contact);
   const footer = $('.site-footer');
   if (footer) new IntersectionObserver(entries => { footerVisible = entries[0].isIntersecting; updateBar(); }, { threshold: 0 }).observe(footer);
 }

@@ -1,0 +1,79 @@
+---
+import { areas, units, whatsapp, type Area } from '../data/content';
+import Text from './TypographyText.astro';
+interface Props { area: Area }
+const { area } = Astro.props;
+const interests = [...areas.map(item => item.title), 'Ainda não sei'];
+---
+<section id="agendamento" class="section service-contact" data-service-contact data-page={area.title} aria-labelledby="service-contact-heading">
+  <div class="container service-contact-layout">
+    <div class="service-contact-copy">
+      <h2 id="service-contact-heading"><Text text="Agende sua avaliação"/></h2>
+      <p>Conte como podemos chamar você e qual cuidado procura. Ao final, continue a conversa com a equipe da unidade escolhida pelo WhatsApp.</p>
+    </div>
+    <div class="service-contact-card">
+      <div data-contact-widget hidden>
+        <div class="service-contact-top"><img src="/assets/logo-transparent-600.webp" width="32" height="32" alt=""/><p data-contact-progress role="status" aria-live="polite">Etapa 1 de 5</p></div>
+        <div class="service-contact-progress" aria-hidden="true">{[0,1,2,3,4].map(step => <span data-progress-step={step}/>)}</div>
+        <h3 id="contact-step-heading" tabindex="-1">Como podemos chamar você?</h3>
+        <p class="service-contact-intro" id="contact-step-intro" data-contact-intro>Uma conversa é o primeiro passo para um cuidado pensado para você.</p>
+        <form data-contact-form novalidate aria-labelledby="contact-step-heading" aria-describedby="contact-step-intro">
+          <div data-contact-step="0"><label class="service-contact-field" for="contact-name">Seu nome<input id="contact-name" name="name" autocomplete="given-name" maxlength="100" required aria-describedby="contact-error"/></label></div>
+          <div data-contact-step="1" hidden><label class="service-contact-field" for="contact-phone">WhatsApp com DDD<input id="contact-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="31 99999-9999" maxlength="30" required aria-describedby="contact-error"/></label></div>
+          <fieldset data-contact-step="2" class="service-contact-options" hidden aria-describedby="contact-error"><legend>Serviço de interesse</legend>{interests.map(interest => <label><input type="radio" name="interest" value={interest} checked={interest === area.title} required/><span>{interest}</span></label>)}</fieldset>
+          <fieldset data-contact-step="3" class="service-contact-options" hidden aria-describedby="contact-error"><legend>Unidade de atendimento</legend>{units.map(unit => <label><input type="radio" name="unit" value={unit.id} data-phone={unit.phone} data-label={unit.name} required/><span>{unit.name}</span></label>)}</fieldset>
+          <div data-contact-step="4" hidden>
+            <dl class="service-contact-review"><div><dt>Nome</dt><dd data-review="name"/></div><div><dt>WhatsApp</dt><dd data-review="phone"/></div><div><dt>Serviço de interesse</dt><dd data-review="interest"/></div><div><dt>Unidade</dt><dd data-review="unit"/></div></dl>
+            <p class="service-contact-notice">Ao continuar, o WhatsApp será aberto com seus dados preenchidos. Você confirma o envio por lá.</p>
+          </div>
+          <p id="contact-error" class="service-contact-error" role="alert" hidden/>
+          <div class="service-contact-actions"><button type="submit" class="button" data-contact-next>Continuar</button><a class="button" data-contact-send data-whatsapp="" data-position="service-form" target="_blank" rel="noopener noreferrer" hidden>Continuar no WhatsApp</a><button type="button" class="service-contact-back" data-contact-back hidden>Voltar</button></div>
+        </form>
+        <p class="service-contact-privacy">Seus dados não são salvos neste site. <a href="/politica-de-privacidade/">Política de Privacidade</a></p>
+      </div>
+      <div class="service-contact-fallback" data-contact-fallback><h3>Converse com a equipe</h3><p>Escolha a unidade para continuar pelo WhatsApp.</p>{units.map(unit => <a class="button button-outline" href={whatsapp(unit.phone)} data-whatsapp={unit.id} data-position="service-form-fallback" target="_blank" rel="noopener noreferrer">{unit.name}</a>)}</div>
+    </div>
+  </div>
+</section>
+<style>
+  .service-contact { background: #edf5f7; border-block: 1px solid var(--line); scroll-margin-top: 7rem; }
+  .service-contact-layout { display: grid; grid-template-columns: minmax(0,1fr); gap: 1.5rem; align-items: start; }
+  .service-contact-copy { max-width: 32rem; }
+  .service-contact-copy h2 { margin: 0 0 1rem; }
+  .service-contact-copy p { max-width: 46ch; }
+  .service-contact-card { min-width: 0; padding: 1.25rem; border: 1px solid white; border-radius: 1.75rem; background: #f9fcfc; }
+  .service-contact-top { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: 1rem; }
+  .service-contact-top img { width: 2rem; height: 2rem; object-fit: cover; object-position: left center; }
+  .service-contact-top p { font-size: .875rem; color: var(--muted); }
+  .service-contact-progress { display: flex; gap: .375rem; margin-bottom: 1.5rem; }
+  .service-contact-progress span { flex: 1; height: 3px; background: var(--line); border-radius: 2px; }
+  .service-contact-progress span[data-complete] { background: var(--teal); }
+  .service-contact-card h3 { margin-bottom: .75rem; color: var(--navy); }
+  .service-contact-card h3:focus { outline: none; }
+  .service-contact-intro { margin-bottom: 1.25rem; }
+  .service-contact-field { display: grid; gap: .5rem; font-weight: 600; color: var(--navy); }
+  .service-contact-field input { box-sizing: border-box; display: block; width: 100%; min-width: 0; min-height: 3.25rem; margin: 0; padding: .75rem .875rem; font: inherit; font-weight: 400; color: var(--navy); background: white; border: 1px solid #a9c3ca; border-radius: .875rem; }
+  .service-contact-field input[aria-invalid=true] { border-color: #a33838; }
+  .service-contact-field input:focus-visible,.service-contact-options input:focus-visible { outline: 3px solid var(--teal); outline-offset: 3px; }
+  .service-contact-options { min-width: 0; padding: 0; margin: 0; border: 0; }
+  .service-contact-options legend { margin-bottom: .625rem; padding: 0; font-size: .875rem; color: var(--muted); }
+  .service-contact-options label { display: flex; align-items: center; gap: .75rem; min-height: 3rem; padding: .75rem; margin-bottom: .625rem; border: 1px solid var(--line); border-radius: .875rem; background: white; cursor: pointer; }
+  .service-contact-options label:has(input:checked) { border-color: var(--teal); background: #eef8f7; }
+  .service-contact-options input { width: 1.125rem; height: 1.125rem; margin: 0; flex-shrink: 0; accent-color: var(--teal); }
+  .service-contact-options span { min-width: 0; }
+  .service-contact-review { margin: 0 0 1rem; }
+  .service-contact-review>div { display: grid; gap: .25rem; padding: .75rem 0; border-bottom: 1px solid var(--line); }
+  .service-contact-review dt { font-size: .875rem; color: var(--muted); }
+  .service-contact-review dd { min-width: 0; margin: 0; color: var(--navy); overflow-wrap: anywhere; }
+  .service-contact-notice,.service-contact-privacy { font-size: .875rem; line-height: 1.6; }
+  .service-contact-privacy { margin-top: 1.25rem; }
+  .service-contact-privacy a { color: var(--teal); text-decoration: underline; text-underline-offset: 3px; }
+  .service-contact-error { margin-top: .875rem; color: #a33838; font-size: .875rem; }
+  .service-contact-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .625rem 1rem; margin-top: 1.5rem; }
+  .service-contact-actions .button { justify-content: center; min-width: 0; max-width: 100%; min-height: 3.25rem; padding: .875rem 1.125rem; line-height: 1.4; text-align: center; }
+  .service-contact-back { min-height: 2.75rem; padding: .5rem 0; color: var(--teal); background: none; text-decoration: underline; text-underline-offset: 4px; }
+  .service-contact-fallback { display: grid; gap: 1rem; }
+  [hidden] { display: none !important; }
+  @media(min-width:600px) { .service-contact-layout { gap: 2rem; } .service-contact-card { padding: 1.75rem; } .service-contact-review>div { grid-template-columns: minmax(0,1fr) minmax(0,1.6fr); gap: 1rem; } }
+  @media(min-width:1024px) { .service-contact-layout { grid-template-columns: minmax(0,1fr) minmax(0,1.15fr); gap: 2.5rem; } .service-contact-copy { padding-top: 1.75rem; } }
+</style>

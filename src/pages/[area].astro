@@ -3,6 +3,7 @@ import Text from '../components/TypographyText.astro';
 import Layout from '../layouts/Layout.astro';
 import Photo from '../components/Photo.astro';
 import ServicePhotoBand from '../components/ServicePhotoBand.astro';
+import ServiceContactForm from '../components/ServiceContactForm.astro';
 import BookingLink from '../components/BookingLink.astro';
 import Icon from '../components/Icon.astro';
 import Faq from '../components/Faq.astro';
@@ -17,5 +18,7 @@ const { area } = Astro.props;
   <section class="section services" aria-labelledby="services-heading"><div class="container service-layout"><aside class="service-index"><span class="eyebrow">Conheça as possibilidades de cuidado.</span><h2 id="services-heading"><Text keepEnd={false} text={area.servicesHeading}/></h2><nav aria-label={`Serviços de ${area.title}`}>{area.services.map(service => <a href={`#${service.id}`}><span><Text text={service.title}/></span><Icon name="arrow" size={16}/></a>)}</nav>{area.slug === 'ortodontia-e-cirurgia' && <a class="text-link service-related" href="/tratamentos/#implantes-dentarios">Conheça os implantes dentários<Icon name="arrow" size={18}/></a>}</aside><div class="service-list">{area.services.map(service => <article class="service" id={service.id}><Icon name={area.icon} size={30}/><div><h3><Text keepEnd={false} text={service.title}/></h3><p><Text text={service.text}/></p><a class="text-link" href="/#unidades" data-booking data-position="service">Conversar com a equipe<Icon name="arrow" size={17}/></a></div></article>)}<p class="clinical-note"><Text text="A indicação e as etapas de cada tratamento dependem de avaliação individual. Consulte a equipe sobre a disponibilidade na unidade de sua preferência."/></p></div></div></section>
   <ServicePhotoBand image={area.sectionImage}/>
   <section class="other-areas"><div class="container"><h2><Text keepEnd={false} text="Conheça outras áreas de atendimento."/></h2><div>{area.relatedLinks.map(link => <a href={link.href}><span><Text text={link.label}/></span><Icon name="arrow" size={19}/></a>)}</div></div></section>
-  <Faq questions={area.questions} eyebrow="Tire suas dúvidas." heading="Dúvidas Frequentes." intro={area.faqIntro}/><Units heading="Clínicas odontológicas em João Monlevade e Belo Horizonte." intro="Escolha sua unidade para conversar com a equipe, confirmar o atendimento desejado e agendar uma avaliação."/>
+  <Faq questions={area.questions} eyebrow="Tire suas dúvidas." heading="Dúvidas Frequentes." intro={area.faqIntro}/>
+  <ServiceContactForm area={area}/>
+  <Units heading="Clínicas odontológicas em João Monlevade e Belo Horizonte." intro="Escolha sua unidade para conversar com a equipe, confirmar o atendimento desejado e agendar uma avaliação."/>
 </Layout>
