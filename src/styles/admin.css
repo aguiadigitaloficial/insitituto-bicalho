@@ -5,3 +5,8 @@
 
 /* WebKit can paint a native selected value outside its label after a narrow resize. Keep the control and its focus outline inside the form. */
 label:has(> select){overflow-x:clip;overflow-clip-margin:.5rem}
+.publication-pending{border:1px solid #d4ad73;border-left:4px solid #ac6a13;background:#fff8eb;border-radius:12px;padding:1rem;margin-bottom:1rem;scroll-margin-top:1rem;min-width:0}
+.publication-pending[hidden]{display:none}.publication-pending h2{font-size:1.125rem;margin-bottom:.5rem}.publication-pending p{font-size:.875rem;margin:.5rem 0}.publication-pending ul{padding-left:1.2rem;margin:.5rem 0}.publication-pending button{background:transparent;border:0;border-radius:4px;padding:.3rem 0;text-align:left;color:#76500d;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.category-options{border:1px solid #d4e3e8;border-radius:12px;min-width:0;margin:0 0 1rem;padding:1rem}.category-options legend{font-size:.875rem;font-weight:600;padding:0 .3rem}.category-options .check{align-items:flex-start;margin:.5rem 0;gap:.4rem}.category-options input{margin-top:.2rem;cursor:pointer}.category-options input:disabled{cursor:default}.category-options span{flex:1;min-width:0}.category-options small{flex:none}.category-options .admin-help{margin:.75rem 0 0;font-weight:400}.editor-settings h3{font-size:.875rem;margin:1rem 0 .5rem}[aria-invalid=true]{border-color:#a85b34}.category-options:focus-visible,.publication-pending:focus-visible{outline:3px solid #007c85;outline-offset:3px}
+
+.publication-pending li>button{display:block;width:100%}

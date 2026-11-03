@@ -5,20 +5,20 @@ import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
 import assert from 'node:assert/strict';
 import {PGlite} from '@electric-sql/pglite';
-import {request} from '@playwright/test';
+import {request,chromium,webkit,expect} from '@playwright/test';
 import {exiftool} from 'exiftool-vendored';
 import {emptySnapshot, COPYRIGHT} from '../src/lib/blog/model';
 
 const dir='artifacts/blog-worker';await mkdir(dir,{recursive:true});
 const pg=new PGlite();
 await pg.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create schema storage;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);alter default privileges in schema public grant all on tables to anon,authenticated,service_role;grant usage on schema public,auth to anon,authenticated,service_role;`);
-for(const name of ['202610270001_blog.sql','202610270002_atomic_editorial.sql','202610300001_cloudflare_media.sql'])await pg.exec((await readFile(`supabase/migrations/${name}`,'utf8')).replace('create extension if not exists pgcrypto;',''));
+for(const name of ['202610270001_blog.sql','202610270002_atomic_editorial.sql','202610300001_cloudflare_media.sql','202611030001_publication_revision_guard.sql'])await pg.exec((await readFile(`supabase/migrations/${name}`,'utf8')).replace('create extension if not exists pgcrypto;',''));
 const accounts=[{id:randomUUID(),email:'owner@example.invalid',role:'owner'},{id:randomUUID(),email:'editor@example.invalid',role:'editor'}];
 for(const a of accounts){await pg.query('insert into auth.users values($1)',[a.id]);await pg.query('insert into blog_members(user_id,role) values($1,$2)',[a.id,a.role]);}
 const user=(a:typeof accounts[number])=>({id:a.id,aud:'authenticated',role:'authenticated',email:a.email,email_confirmed_at:new Date().toISOString(),created_at:new Date().toISOString(),app_metadata:{provider:'email',providers:['email']},user_metadata:{}});
 const tokenExpiry=Math.floor(Date.now()/1000)+3600;
 const jwt=(a:typeof accounts[number])=>[Buffer.from('{"alg":"HS256","typ":"JWT"}').toString('base64url'),Buffer.from(JSON.stringify({sub:a.id,role:'authenticated',exp:tokenExpiry})).toString('base64url'),'local-protocol-fixture'].join('.');
-const objects=new Map<string,Buffer>();let calls=0;
+const objects=new Map<string,Buffer>();let calls=0;let failList=false;
 const tables=new Set(['blog_members','blog_posts','blog_revisions','blog_media','blog_taxonomies','blog_publications','blog_schedules','blog_redirects']);
 const ident=(s:string)=>{if(!/^[a-z_]+$/.test(s))throw new Error('Invalid test identifier');return '"'+s+'"';};
 const fixtures=createServer(async(req,res)=>{
@@ -42,7 +42,7 @@ const fixtures=createServer(async(req,res)=>{
       const chunks:Buffer[]=[];for await(const chunk of req)chunks.push(Buffer.from(chunk));objects.set(path,Buffer.concat(chunks));return json({Key:path});
     }
     if(!u.pathname.startsWith('/rest/v1/'))return json({message:'Not found'},404);
-    const resource=u.pathname.slice('/rest/v1/'.length);let text='';for await(const c of req)text+=c;const body=text?JSON.parse(text):undefined;
+    const resource=u.pathname.slice('/rest/v1/'.length);if(failList&&resource==='blog_media')return json({message:'PRIVATE ARTICLE BODY MUST NOT LEAK'},500);let text='';for await(const c of req)text+=c;const body=text?JSON.parse(text):undefined;
     const result=await pg.transaction(async tx=>{
       const role=token==='local-service-key'?'service_role':accounts.some(a=>jwt(a)===token)?'authenticated':'anon';await tx.exec(`set local role ${role}`);
       if(resource.startsWith('rpc/')){
@@ -65,7 +65,7 @@ const base='https://127.0.0.1:4327';let log='';const report:any={kind:'Built Clo
 const child=spawn(process.execPath,['node_modules/wrangler/bin/wrangler.js','dev','--config','dist-cloudflare/server/wrangler.json','--local','--local-protocol','https','--port','4327','--inspector-port','0','--var','SUPABASE_URL:http://127.0.0.1:54328','--var','SUPABASE_ANON_KEY:local-anon-key','--var','SUPABASE_SERVICE_ROLE_KEY:local-service-key','--var','BLOG_CRON_SECRET:local-cron-secret'],{env:{...process.env,WRANGLER_SEND_METRICS:'false'},stdio:['ignore','pipe','pipe']});child.stdout?.on('data',b=>log+=b);child.stderr?.on('data',b=>log+=b);
 // Wrangler's local certificate is trusted only by these isolated API test clients.
 const owner=await request.newContext({baseURL:base,ignoreHTTPSErrors:true,extraHTTPHeaders:{Origin:base}}),editor=await request.newContext({baseURL:base,ignoreHTTPSErrors:true,extraHTTPHeaders:{Origin:base}}),visitor=await request.newContext({baseURL:base,ignoreHTTPSErrors:true});
-async function api(ctx:any,action:string,body?:unknown,status=200){const before=calls;const r=body===undefined?await ctx.get(`/api/blog/${action}/`):await ctx.post(`/api/blog/${action}/`,{data:body});const data=await r.json();assert.equal(r.status(),status,JSON.stringify({action,data}));const used=calls-before;report.maxServiceCalls=Math.max(report.maxServiceCalls,used);assert(used<40,`${action} exceeded external service request budget: ${used}`);return data;}
+async function api(ctx:any,action:string,body?:unknown,status=200){const before=calls;const r=body===undefined?await ctx.get(`/api/blog/${action}/`):await ctx.post(`/api/blog/${action}/`,{data:body});const data=await r.json();assert.equal(r.status(),status,JSON.stringify({action,data}));if(status>=400){assert.equal(typeof data.error,'string');assert.equal(typeof data.code,'string');assert(Array.isArray(data.fields));assert.match(data.requestId,/^[a-f0-9-]{36}$/);assert.equal(r.headers()['x-request-id'],data.requestId);}const used=calls-before;report.maxServiceCalls=Math.max(report.maxServiceCalls,used);assert(used<40,`${action} exceeded external service request budget: ${used}`);return data;}
 try{
   let ready=false;for(let i=0;i<90;i++){if(child.exitCode!==null)break;try{if((await visitor.get('/admin/')).ok()){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,400));}assert(ready,log);
   for(const path of ['/admin/?password=1','/conteudos/','/sitemap.xml']){const navigation=await visitor.get(path,{headers:{'Sec-Fetch-Mode':'navigate','Sec-Fetch-Dest':'document'}});assert.equal(navigation.status(),200,`Browser navigation must reach SSR: ${path}`);assert(!(await navigation.text()).includes('<title>Página não encontrada'));}report.checks.push('Browser navigation headers reach SSR for invitations, public blog and sitemap');
@@ -84,7 +84,24 @@ try{
   const snapshot={...emptySnapshot(),title:'Demonstração do Worker',slug:'demonstracao-worker',authorId:author.id,categoryIds:[category.id],primaryCategoryId:category.id,coverId:asset.id,excerpt:'Texto neutro de verificação editorial.',content:{type:'doc',content:[{type:'paragraph',content:[{type:'text',text:'Demonstração do painel.'}]},{type:'image',attrs:{assetId:fullId}}]}};
   let saved=await api(editor,'save',{snapshot,version:0});await api(editor,'save',{id:saved.id,snapshot,version:0},409);
   assert.equal((await visitor.get('/conteudos/previa/'+saved.id+'/',{maxRedirects:0})).status(),303);
-  await api(editor,'publish',{id:saved.id,version:saved.version},400);await api(editor,'prepare-media',{id:saved.id,version:saved.version,assetId:asset.id});await api(editor,'prepare-media',{id:saved.id,version:saved.version,assetId:fullId});await api(editor,'publish',{id:saved.id,version:saved.version});
+  const initialPublicObjects=[...objects.keys()].filter(k=>k.startsWith('blog-public/')).length;
+  for(const altered of [{...snapshot,primaryCategoryId:'',categoryIds:[]},{...snapshot,categoryIds:[]},{...snapshot,extraJsonLd:'{"@type":'},{...snapshot,extraJsonLd:'{"@type":"BlogPosting"}'}]){
+    const draft=await api(editor,'save',{snapshot:altered,version:0});
+    const expected=altered.extraJsonLd?'extraJsonLd':altered.primaryCategoryId?'categoryIds':'primaryCategoryId';
+    const beforeObjects=[...objects.keys()].filter(k=>k.startsWith('blog-public/')).length;
+    await api(editor,'validate-publication',{id:draft.id,version:draft.version},422);
+    const blocked=await api(editor,'prepare-media',{id:draft.id,version:draft.version,assetId:asset.id},422);assert(blocked.fields.includes(expected));if(altered.extraJsonLd.includes('BlogPosting'))assert(blocked.issues.some((i:any)=>i.message.includes('BlogPosting já é gerado')));
+    await api(editor,'publish',{id:draft.id,version:draft.version},422);await api(editor,'schedule',{id:draft.id,version:draft.version,at:new Date(Date.now()+180000).toISOString()},422);
+    assert.equal((await pg.query<any>('select draft from blog_posts where id=$1',[draft.id])).rows[0].draft.extraJsonLd,altered.extraJsonLd);
+    assert.equal([...objects.keys()].filter(k=>k.startsWith('blog-public/')).length,beforeObjects);
+    const preview=await editor.get('/conteudos/previa/'+draft.id+'/');assert.equal(preview.status(),200);const previewHTML=await preview.text();assert(previewHTML.includes('pendências para publicação'));if(altered.extraJsonLd)assert(previewHTML.includes('omitido desta prévia'));
+  }
+  assert.equal([...objects.keys()].filter(k=>k.startsWith('blog-public/')).length,initialPublicObjects);
+  const noCover=await api(editor,'save',{snapshot:{...snapshot,slug:'sem-capa-permitido',coverId:'',content:{type:'doc',content:[{type:'paragraph',content:[{type:'text',text:'Teste sem capa.'}]}]}},version:0});await api(editor,'publish',{id:noCover.id,version:noCover.version});
+  failList=true;const internal=await api(editor,'list',undefined,500);assert.equal(internal.code,'INTERNAL_ERROR');assert(!JSON.stringify(internal).includes('PRIVATE ARTICLE'));failList=false;
+  const missing=objects.get('blog-private/'+asset.variants[0].path)!;objects.delete('blog-private/'+asset.variants[0].path);const unavailable=await api(editor,'prepare-media',{id:saved.id,version:saved.version,assetId:asset.id},502);assert.equal(unavailable.code,'MEDIA_PREPARATION_FAILED');objects.set('blog-private/'+asset.variants[0].path,missing);assert.equal((await pg.query<any>('select public_ready_stamp from blog_media where id=$1',[asset.id])).rows[0].public_ready_stamp,null);
+  report.checks.push('422 field errors before storage, incomplete JSON-LD drafts/private previews, duplicate type explanation, optional cover, safe 500/502 diagnostics and unchanged media readiness');
+  await api(editor,'publish',{id:saved.id,version:saved.version},422);await api(editor,'prepare-media',{id:saved.id,version:saved.version,assetId:asset.id});await api(editor,'prepare-media',{id:saved.id,version:saved.version,assetId:fullId});await api(editor,'publish',{id:saved.id,version:saved.version});
   const html=await (await visitor.get('/conteudos/demonstracao-worker/')).text();assert(html.includes(snapshot.title)&&html.includes('BlogPosting'));assert.match(html,/noindex/);
   const changed={...snapshot,title:'Título salvo somente como rascunho',slug:'demonstracao-worker-atualizada'};saved=await api(editor,'save',{id:saved.id,snapshot:changed,version:saved.version});assert.equal((await pg.query<any>('select snapshot from blog_publications where id=$1',[saved.id])).rows[0].snapshot.title,snapshot.title);
   await api(editor,'prepare-media',{id:saved.id,version:saved.version,assetId:asset.id});await api(editor,'publish',{id:saved.id,version:saved.version});
@@ -92,6 +109,33 @@ try{
   await api(editor,'unpublish',{id:saved.id});await api(editor,'trash',{id:saved.id});await api(editor,'restore',{id:saved.id});
   const scheduled=await api(editor,'save',{snapshot:{...snapshot,slug:'demonstracao-agendamento-worker'},version:0});await api(editor,'prepare-media',{id:scheduled.id,version:scheduled.version,assetId:asset.id});await api(editor,'prepare-media',{id:scheduled.id,version:scheduled.version,assetId:fullId});await api(editor,'schedule',{id:scheduled.id,version:scheduled.version,at:new Date(Date.now()+120000).toISOString()});await pg.query('update blog_schedules set run_at=now()-interval \'1 second\' where post_id=$1',[scheduled.id]);
   assert.equal((await visitor.post('/api/blog/cron/',{headers:{Authorization:'Bearer wrong'}})).status(),401);assert.equal((await visitor.post('/api/blog/cron/',{headers:{Authorization:'Bearer local-cron-secret'}})).status(),200);assert.equal((await pg.query<any>('select status from blog_schedules where post_id=$1',[scheduled.id])).rows[0].status,'published');report.checks.push('Unpublish, trash/restore, scheduling, authenticated Cron gateway and shared publisher');
+  for(const [engineName,engine]of [['chromium',chromium],['webkit',webkit]]as const){
+    const browser=await engine.launch(engineName==='chromium'?{channel:'chrome'}:{});const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:1366,height:768}});const page=await context.newPage();
+    try{
+      const legacy=await api(editor,'save',{snapshot:{...snapshot,title:'Revisão responsiva '+engineName,slug:'revisao-'+engineName,categoryIds:[],extraJsonLd:'{"@type":'},version:0});
+      await page.goto(base+'/admin/');await page.getByLabel('E-mail',{exact:true}).fill(accounts[1].email);await page.getByLabel('Senha',{exact:true}).fill('local-editor-password');await page.getByRole('button',{name:'Entrar',exact:true}).click();await page.locator(`[data-open="${legacy.id}"]`).click();
+      await expect(page.locator('#publication-pending')).toContainText('categoria principal já escolhida');await expect(page.locator('[data-field="extraJsonLd"]')).toHaveValue('{"@type":');
+      await page.waitForTimeout(1600);assert.equal((await pg.query<any>('select version from blog_posts where id=$1',[legacy.id])).rows[0].version,legacy.version,'Opening a legacy draft must not save or repair it');
+      let preparations=0,publishes=0;page.on('request',r=>{if(r.url().endsWith('/api/blog/prepare-media/'))preparations++;if(r.url().endsWith('/api/blog/publish/'))publishes++;});
+      await page.locator('[data-publish]').click();await expect(page.locator('[data-validation-field="categoryIds"]')).toBeFocused();assert.equal(preparations,0);assert.equal(publishes,0);
+      await page.locator(`[data-category-id="${category.id}"]`).check();await expect(page.locator(`[data-category-id="${category.id}"]`)).toBeDisabled();await page.locator('[data-field="primaryCategoryId"]').selectOption('');await expect(page.locator(`[data-category-id="${category.id}"]`)).toBeEnabled();await page.locator(`[data-category-id="${category.id}"]`).uncheck();await page.locator('[data-field="primaryCategoryId"]').selectOption(category.id);await expect(page.locator(`[data-category-id="${category.id}"]`)).toBeChecked();
+      await page.locator('[data-publish]').click();await expect(page.locator('[data-field="extraJsonLd"]')).toBeFocused();assert.equal(preparations,0);assert.equal(publishes,0);
+      for(const width of [320,375,390,393,414,768,834,1024,1366,2560])for(const scale of [100,200]){await page.setViewportSize({width,height:900});await page.evaluate(value=>document.documentElement.style.fontSize=value+'%',scale);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${engineName} pending summary overflow ${width}/${scale}`);}
+      await page.evaluate(()=>document.documentElement.style.fontSize='');await page.setViewportSize({width:390,height:844});await page.screenshot({path:dir+'/pending-'+engineName+'-390.png',fullPage:true});await page.setViewportSize({width:1366,height:768});
+      await page.locator('[data-field="extraJsonLd"]').fill('{"@type":"BlogPosting"}');await page.locator('[data-save]').click();await expect(page.locator('#save-status')).toHaveText('Salvo');await page.reload();await page.locator(`[data-open="${legacy.id}"]`).click();await page.locator('[data-tab="advanced"]').click();await expect(page.locator('[data-field="extraJsonLd"]')).toHaveValue('{"@type":"BlogPosting"}');
+      await page.locator('[data-publish]').click();await expect(page.locator('#publication-pending')).toContainText('BlogPosting já é gerado');assert.equal(preparations,0);
+      await page.locator('[data-field="extraJsonLd"]').fill('');await page.locator('[data-save]').click();await expect(page.locator('#save-status')).toHaveText('Salvo');
+      // Pause preparation while another tab saves. Only the frozen version may publish.
+      let release!:()=>void;let reached!:()=>void;const waiting=new Promise<void>(r=>reached=r),gate=new Promise<void>(r=>release=r);let paused=false;
+      await page.route('**/api/blog/prepare-media/',async route=>{if(!paused){paused=true;reached();await gate;}await route.continue();});
+      await page.locator('[data-publish]').evaluate((b:HTMLButtonElement)=>{b.click();b.click();});await waiting;await expect(page.locator('[data-publish]')).toBeDisabled();await expect(page.locator('[data-schedule]')).toBeDisabled();
+      const currentRow=(await pg.query<any>('select * from blog_posts where id=$1',[legacy.id])).rows[0];await api(editor,'save',{id:legacy.id,version:currentRow.version,snapshot:{...currentRow.draft,excerpt:'Alteração concorrente de demonstração.'}});release();
+      await expect(page.locator('#publication-pending')).toContainText('outra aba',{timeout:15000});await expect(page.locator('[data-publish]')).toBeEnabled();assert.equal((await pg.query('select * from blog_publications where id=$1',[legacy.id])).rows.length,0);await page.unroute('**/api/blog/prepare-media/');assert.equal(publishes,0);
+      await page.reload();await page.locator(`[data-open="${legacy.id}"]`).click();await page.locator('[data-publish]').evaluate((b:HTMLButtonElement)=>{b.click();b.click();});await expect(page.locator('#admin-status')).toContainText('Publicação atualizada',{timeout:30000});assert.equal(publishes,1,'Double click must create exactly one publication request');
+      const finalRow=(await pg.query<any>('select snapshot from blog_publications where id=$1',[legacy.id])).rows[0];assert.equal(finalRow.snapshot.excerpt,'Alteração concorrente de demonstração.');
+      report.checks.push(engineName+': legacy draft unchanged, checkbox/main category, persistent preflight/focus, JSON-LD reload, 20 responsive/200% cases, concurrent tab, frozen revision and duplicate-click prevention');
+    }finally{await context.close();await browser.close();}
+  }
   const privateResult=await owner.get('/admin/');assert.match(privateResult.headers()['cache-control'],/no-store/);assert.match(privateResult.headers()['x-robots-tag'],/noindex/);
   const old=await visitor.get('/saude-e-restauracao-dental-insituto-bicalho',{maxRedirects:0});assert.equal(old.status(),301);assert.match((await visitor.get('/')).headers()['x-robots-tag'],/noindex/);report.checks.push('Preview noindex headers, static legacy redirects and private panel no-store');
   console.log(`PASS: ${report.checks.length} built Worker integration groups; maximum ${report.maxServiceCalls} external service calls per tested editorial action.`);

@@ -4,7 +4,7 @@ A branch `codex/cloudflare-blog` prepara um Worker exclusivo em conta do Institu
 
 ## Ambiente e acesso
 
-1. Usar somente o projeto Supabase isolado do Instituto. Conferir organização, proprietário e plano Free antes de aplicar as três migrations em ordem. A conta da plataforma é separada dos usuários convidados do blog.
+1. Usar somente o projeto Supabase isolado do Instituto. Conferir organização, proprietário e plano Free antes de aplicar todas as migrations versionadas em ordem. A conta da plataforma é separada dos usuários convidados do blog.
 2. No Auth, desativar cadastro público e acesso anônimo; preservar confirmação de e-mail. Definir Site URL como a origem exata da prévia e permitir seus callbacks e `/admin/?password=1`, incluindo equivalentes locais quando necessários.
 3. Convidar o proprietário editorial e cadastrar seu UUID em `blog_members` com role `owner`. Somente o proprietário administra convites; autores públicos são cadastros separados. Nunca versionar ou enviar senhas e chaves em mensagens.
 4. Guardar credenciais de provisionamento em `.env.provision.local` e as variáveis do aplicativo em `.env.blog.local`, ambos ignorados. O runtime recebe `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` e `BLOG_CRON_SECRET` pelo mecanismo de secrets do Worker. A chave de serviço nunca usa prefixo PUBLIC.
@@ -71,6 +71,19 @@ Implantar `publish-scheduled` com `verify_jwt=false`, protegido por `BLOG_CRON_S
 - `node --env-file=.env.blog.local --import tsx scripts/blog-admin-resize-live-check.ts`: conferência hospedada de todas as abas e dos diálogos de seleção/envio de imagem e revisões, com texto a 100% e 200%, incluindo 320 px. Mantém a fonte ampliada e remove somente seus próprios registros descartáveis. Evidências em `artifacts/blog-admin-resize/`.
 - `scripts/blog-smtp-check.ts`: teste em fases (`invite`, `accept`, `recover`, `finish`, `cleanup`) restrito ao projeto e à prévia aprovados. O link de cada mensagem real é conferido e exportado pela interface da caixa autorizada, nunca por resposta simulada. Consumir a recuperação dentro do prazo do fluxo PKCE. O relatório distingue entrega no Lixo Eletrônico de entrega na caixa principal.
 
-Para migrar no futuro, criar destino vazio, aplicar as três migrations e exportar/importar com `scripts/blog-transfer.ts`. Excluir demonstrações e acessos de teste; preservar IDs de mídia, slugs, revisões, arquivos e copyright. Recriar convites e SMTP, URLs, secrets e Cron; conferir contagens e hashes antes de trocar a origem ativa. Pausar o publicador anterior durante a troca para evitar duplicação. Manter o ambiente anterior disponível para retorno até a aprovação.
+Para migrar no futuro, criar destino vazio, aplicar todas as migrations versionadas e exportar/importar com `scripts/blog-transfer.ts`. Excluir demonstrações e acessos de teste; preservar IDs de mídia, slugs, revisões, arquivos e copyright. Recriar convites e SMTP, URLs, secrets e Cron; conferir contagens e hashes antes de trocar a origem ativa. Pausar o publicador anterior durante a troca para evitar duplicação. Manter o ambiente anterior disponível para retorno até a aprovação.
 
 Retirar um artigo oculta sua página, mas não revoga cópias de imagens públicas já compartilhadas. Alterações de imagem geram caminhos novos; originais continuam privados.
+
+
+## Pendências e publicação (03/11/2026)
+
+Selecionar a categoria principal também inclui essa categoria no artigo. As categorias adicionais usam caixas de seleção. Para remover a principal, selecionar outra ou limpar a definição. Rascunhos antigos inconsistentes mostram o vínculo pendente; abrir o artigo não salva nem corrige dados automaticamente.
+
+O JSON-LD complementar é texto no rascunho e pode ser salvo incompleto. Publicar, atualizar e agendar exigem validação completa. A prévia privada mostra as pendências e omite todo complemento inválido. BlogPosting, autoria e navegação continuam automáticos; não copiar esses blocos para o campo complementar. Metatags adicionais continuam exigindo sua estrutura válida no salvamento.
+
+O resumo persistente direciona à aba e ao campo. O checklist distingue obrigatórios de recomendações; a capa permanece opcional. A validação local e `/api/blog/validate-publication/` precedem o preparo de mídia. Uma tentativa usa somente a revisão salva capturada e desativa controles temporariamente. A migration `202611030001_publication_revision_guard.sql` recusa revisões manuais antigas dentro da transação; agendamentos mantêm sua revisão explícita e a mesma publicação atômica.
+
+Erros retornam `error`, `code`, `fields`, `requestId` e, quando pertinente, `issues`. Pendências editoriais usam 422; concorrência usa 409; falhas internas/dependências usam 5xx. O identificador também está em `X-Request-Id`. Os logs `[blog]` registram somente ação, código, status, campos e referência, sem corpo, senha ou token. Consultar exclusivamente `cloudflare-workers`, com filtro `$workers.scriptName = instituto-bicalho-blog-preview`; nunca consultar todas as contas/projetos. Após conflito, preservar/copiar mudanças pendentes antes de reabrir o artigo.
+
+Os testes novos de Worker cobrem rascunho legado sem alteração ao abrir, JSON incompleto/duplicado, prévia segura, 422/409/500/502, falha de mídia sem marcar prontidão, clique duplicado, concorrência e 320–2560 px com texto a 200% nos dois motores. O teste hospedado também reproduz as pendências com registros descartáveis. Somente UUIDs criados por cada execução são removidos.

@@ -2,15 +2,15 @@ import type {APIRoute} from 'astro';
 import {randomUUID,timingSafeEqual} from 'node:crypto';
 import {z} from 'zod';
 import {db,authClient,configured,requireEditor,HttpError,originGuard,privateHeaders,env} from '../../../lib/blog/server';
-import {snapshotSchema,validateAdvanced,validateDocument,validatePublication,assetIds,COPYRIGHT} from '../../../lib/blog/model';
-import {processUpload,publishRevision,preparePublicMedia,publicationAssets} from '../../../lib/blog/publish';
+import {snapshotSchema,validateExtraMeta,validateDocument,validatePublication,assetIds,assetField,EditorialValidationError,AdvancedValidationError,COPYRIGHT} from '../../../lib/blog/model';
+import {processUpload,publishRevision,preparePublicMedia,publicationAssets,validateEditorial} from '../../../lib/blog/publish';
 export const prerender=false;
 const uuid=z.uuid();
 async function requestBody(request:Request){const reader=request.body?.getReader();if(!reader)throw new HttpError(400,'Corpo da solicitação ausente.');let length=0;const chunks:Uint8Array[]=[];while(true){const {done,value}=await reader.read();if(done)break;length+=value.length;if(length>2000000){await reader.cancel();throw new HttpError(413,'Conteúdo excedeu o limite de 2 MB.');}chunks.push(value);}try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new HttpError(400,'Solicitação inválida.');}}
 export const ALL:APIRoute=async(ctx)=>{
- const reply=(data:unknown,status=200)=>Response.json(data,{status,headers:privateHeaders()});
+ const requestId=randomUUID(),action=ctx.params.action;
+ const reply=(data:unknown,status=200)=>Response.json(data,{status,headers:{...privateHeaders(),'X-Request-Id':requestId}});
  try{
-  const action=ctx.params.action;
   if(action==='cron'){
    const expected=env('BLOG_CRON_SECRET'),token=ctx.request.headers.get('authorization')?.replace(/^Bearer /,'')||'';
    if(ctx.request.method!=='POST'||!expected||token.length!==expected.length||!timingSafeEqual(Buffer.from(token),Buffer.from(expected)))throw new HttpError(401,'Acesso não autorizado.');
@@ -46,11 +46,14 @@ export const ALL:APIRoute=async(ctx)=>{
   }
   if(action==='revisions'){const postId=uuid.parse(ctx.url.searchParams.get('id'));const r=await c.from('blog_revisions').select('*').eq('post_id',postId).order('version',{ascending:false}).limit(100);if(r.error)throw r.error;return reply(r.data);}
   const body=await requestBody(ctx.request);
+  if(action==='validate-publication'){
+   const b=z.object({id:uuid,version:z.number().int().positive()}).parse(body);const post=await c.from('blog_posts').select('draft,version,trashed_at').eq('id',b.id).single();if(post.error||post.data.trashed_at)throw new HttpError(404,'Publicação não encontrada.');if(post.data.version!==b.version)throw new HttpError(409,'O rascunho mudou em outra aba. Suas alterações continuam no editor. Reabra antes de publicar.');await validateEditorial(post.data.draft);return reply({ok:true});
+  }
   if(action==='prepare-media'){
-   const b=z.object({id:uuid,version:z.number().int().positive(),assetId:uuid}).parse(body);const post=await c.from('blog_posts').select('draft,version,trashed_at').eq('id',b.id).single();if(post.error||post.data.trashed_at)throw new HttpError(404,'Publicação não encontrada.');if(post.data.version!==b.version)throw new HttpError(409,'O rascunho mudou. Salve e prepare a publicação novamente.');validatePublication(post.data.draft);if(!assetIds(post.data.draft).includes(b.assetId))throw new HttpError(400,'A imagem não pertence a esta publicação.');const asset=await c.from('blog_media').select('*').eq('id',b.assetId).single();if(asset.error)throw asset.error;await preparePublicMedia(asset.data);return reply({ok:true});
+   const b=z.object({id:uuid,version:z.number().int().positive(),assetId:uuid}).parse(body);const post=await c.from('blog_posts').select('draft,version,trashed_at').eq('id',b.id).single();if(post.error||post.data.trashed_at)throw new HttpError(404,'Publicação não encontrada.');if(post.data.version!==b.version)throw new HttpError(409,'O rascunho mudou em outra aba. Suas alterações continuam no editor. Reabra o artigo antes de publicar.');validatePublication(post.data.draft);if(!assetIds(post.data.draft).includes(b.assetId))throw new HttpError(422,'A imagem não pertence a esta publicação.',{code:'MEDIA_REFERENCE_INVALID',fields:['content']});const asset=await c.from('blog_media').select('*').eq('id',b.assetId).single();if(asset.error)throw new HttpError(422,'Uma imagem selecionada não foi encontrada. Confira a biblioteca.',{fields:[assetField(post.data.draft,b.assetId)]});await preparePublicMedia(asset.data,assetField(post.data.draft,b.assetId));return reply({ok:true});
   }
   if(action==='save'){
-   const s=snapshotSchema.parse(body.snapshot);validateAdvanced(s);validateDocument(s.content);const r=await c.rpc('blog_save',{p_id:body.id?uuid.parse(body.id):null,p_snapshot:s,p_version:z.number().int().nonnegative().parse(body.version||0),p_actor:user.id});if(r.error)throw new HttpError(r.error.message.includes('CONFLICT')?409:400,r.error.message.includes('CONFLICT')?'Outra revisão foi salva. Reabra o artigo antes de continuar para preservar as alterações.':'Não foi possível salvar.');return reply(r.data);
+   const s=snapshotSchema.parse(body.snapshot);validateExtraMeta(s);try{validateDocument(s.content);}catch(error){throw new EditorialValidationError([{field:'content',message:(error as Error).message}]);}const r=await c.rpc('blog_save',{p_id:body.id?uuid.parse(body.id):null,p_snapshot:s,p_version:z.number().int().nonnegative().parse(body.version||0),p_actor:user.id});if(r.error)throw new HttpError(r.error.message.includes('CONFLICT')?409:502,r.error.message.includes('CONFLICT')?'Outra revisão foi salva em outra aba. Suas alterações continuam no editor. Copie as mudanças pendentes antes de reabrir o artigo.':'O serviço não conseguiu salvar agora. Suas alterações continuam no editor. Tente novamente.');return reply(r.data);
   }
   if(action==='publish'){
    const postId=uuid.parse(body.id);const revision=await c.from('blog_revisions').select('id').eq('post_id',postId).eq('version',z.number().int().positive().parse(body.version)).single();if(revision.error)throw new HttpError(409,'Salve o artigo antes de publicar.');const current=await c.from('blog_posts').select('version').eq('id',postId).single();if(current.data?.version!==body.version)throw new HttpError(409,'Uma revisão mais recente foi salva. Reabra antes de publicar.');return reply({slug:await publishRevision(postId,revision.data.id)});
@@ -83,5 +86,14 @@ export const ALL:APIRoute=async(ctx)=>{
    if(role!=='owner')throw new HttpError(403,'Acesso restrito ao proprietário.');const id=uuid.parse(body.id);if(id===user.id)throw new HttpError(400,'Você não pode remover o próprio acesso.');const r=await c.from('blog_members').delete().eq('user_id',id);if(r.error)throw r.error;return reply({ok:true});
   }
   throw new HttpError(404,'Operação não encontrada.');
- }catch(error){if(error instanceof HttpError)return reply({error:error.message},error.status);if(error instanceof z.ZodError)return reply({error:'Revise os campos informados.',fields:error.issues.map(i=>i.path.join('.'))},400);console.error('[blog]',error instanceof Error?error.message:'Falha interna');return reply({error:'Não foi possível concluir. Suas alterações continuam no editor.'},400);}
+ }catch(error){
+  let status=500,code='INTERNAL_ERROR',message='Não foi possível concluir agora. Suas alterações continuam no editor. Tente novamente.',fields:string[]=[],issues:{field:string;message:string}[]=[];
+  if(error instanceof HttpError){status=error.status;code=error.options.code||({409:'REVISION_CONFLICT',422:'EDITORIAL_PENDING',401:'UNAUTHORIZED',403:'FORBIDDEN',404:'NOT_FOUND'} as Record<number,string>)[status]||(status>=500?'SERVICE_UNAVAILABLE':'INVALID_REQUEST');message=error.message;fields=error.options.fields||[];}
+  else if(error instanceof EditorialValidationError){status=422;code=error.code;message='Revise as pendências antes de publicar.';issues=error.issues;fields=[...new Set(issues.map(i=>i.field))];}
+  else if(error instanceof AdvancedValidationError){status=422;code='INVALID_METADATA';message=error.message;fields=[error.field];}
+  else if(error instanceof z.ZodError){status=422;code='INVALID_FIELDS';message='Revise os campos informados.';fields=[...new Set(error.issues.map(i=>i.path.filter(p=>p!=='snapshot').join('.')))];issues=fields.map(field=>({field,message:'Confira o formato e o limite deste campo.'}));}
+  // Deliberately exclude exception messages, request bodies, tokens and article contents.
+  console.error('[blog]',JSON.stringify({event:'editorial_request_failed',action,requestId,status,code,fields}));
+  return reply({error:message,code,fields,requestId,...(issues.length?{issues}:{})},status);
+ }
 };
