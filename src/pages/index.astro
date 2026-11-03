@@ -25,7 +25,7 @@ const photos = ['careOverview', 'smile', 'aligners', 'precision'] as const;
         <Photo name="hero" class="hero-photo" eager sizes={photoSizes.hero}/>
         <div class="hero-image-base">
           <div class="photo-tags" aria-hidden="true"><span>Escuta</span><span>Cuidado</span><span>Tecnologia</span></div>
-          <div class="hero-glass"><img class="hero-care-symbol" src="/assets/brand-symbol.webp" width="32" height="32" alt="" aria-hidden="true"/><div><strong>Você no centro do cuidado.</strong><p><Text text="Da primeira conversa a cada novo sorriso."/></p></div></div>
+          <div class="hero-glass"><img class="hero-care-symbol" src="/assets/logo-transparent-600.webp" width="32" height="32" alt="" aria-hidden="true"/><div><strong>Você no centro do cuidado.</strong><p><Text text="Da primeira conversa a cada novo sorriso."/></p></div></div>
         </div>
       </div>
     </div>
@@ -35,7 +35,7 @@ const photos = ['careOverview', 'smile', 'aligners', 'precision'] as const;
     <div class="container">
       <div class="institution-layout">
         <div class="institution-copy"><span class="eyebrow">Instituto Bicalho Odontologia de Precisão</span><h2 id="institution-heading"><Text keepEnd={false} text="Uma equipe, "/><span><Text text="várias especialidades."/></span></h2><p class="lead-copy"><Text text="Avaliação individualizada antes de qualquer tratamento."/></p><p><Text text="A equipe reúne implantodontia, ortodontia, odontopediatria, prótese dentária, endodontia, periodontia e harmonização orofacial, com planejamento conjunto quando o caso exige mais de uma especialidade."/></p><p><Text text="O acompanhamento começa pela queixa e pelo histórico do paciente, segue para o exame clínico e, quando indicado, para o planejamento digital antes de qualquer procedimento."/></p></div>
-        <div class="partner-photos glass"><Photo name="partnersTogether" sizes={photoSizes.partnersTogether}/><div class="portrait-note"><img src="/assets/brand-symbol.webp" width="28" height="28" alt="" aria-hidden="true"/><span><Text text="Dr. Bruno Bicalho e Dra. Roberta Souza Carneiro, sócios do Instituto Bicalho."/></span></div></div>
+        <div class="partner-photos glass"><Photo name="partnersTogether" sizes={photoSizes.partnersTogether}/><div class="portrait-note"><img src="/assets/logo-transparent-600.webp" width="28" height="28" alt="" aria-hidden="true"/><span><Text text="Dr. Bruno Bicalho e Dra. Roberta Souza Carneiro, sócios do Instituto Bicalho."/></span></div></div>
       </div>
       <div id="equipe">
         <details class="team-panel" id="equipe-completa"><summary><span>Conheça nossa equipe<small>Profissionais e áreas de atuação</small></span><span class="round-arrow"><Icon name="plus" size={22}/></span></summary><div class="team-panel-content"><Photo name="team" class="team-photo" sizes="(min-width: 1000px) 880px, 100vw"/><div class="team-grid">{team.map(person => <article class="team-person"><h3><Text keepEnd={false} text={person.name}/></h3>{person.role && <span class="team-role">{person.role}</span>}<p><span class="team-kind">{person.kind}</span><Text text={person.work}/></p></article>)}</div></div></details>

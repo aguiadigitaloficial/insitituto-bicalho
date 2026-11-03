@@ -1,4 +1,14 @@
-# Estado da implementação — 30/10/2026
+# Estado da implementação — 03/11/2026
+
+## Preparação da apresentação — 03/11/2026
+
+- Os 12 exemplos iniciais foram substituídos por textos institucionais com títulos, resumos e URLs naturais, organizados nas quatro categorias e em seis tags. Continuam marcados como demonstração e sem indexação; usam os textos aprovados e as fotografias existentes, sem autoria clínica ou depoimentos inventados.
+- As revisões antigas foram preservadas e as URLs anteriores redirecionam para as novas. Há um rascunho adicional de apresentação, **Converse com a equipe sobre sua avaliação**. O rascunho original do proprietário e sua senha permanecem intactos.
+- O símbolo na hero e na legenda dos sócios passou a usar a marca oficial com canal alfa. O recorte é apenas de apresentação por CSS; não há fundo branco no arquivo utilizado nem redesenho da marca.
+- Foram refeitos os testes PostgreSQL/regras editoriais, os 80 grupos do editor real em Chromium/WebKit, os 134 cenários de refluxo administrativo a 100%/200% e a integração hospedada com upload de 2936 px e publicação pelo Cron real.
+- A entrega real de e-mails foi validada em 30/10, conforme o registro abaixo; não houve reenvio a terceiros nesta revisão. O PDF anterior não foi enviado nem atualizado nesta execução: a entrega desta etapa é a URL de prévia e o roteiro de apresentação.
+
+As seções seguintes registram a base técnica e as evidências anteriores, complementadas pela revisão acima.
 
 ## Ambiente atual
 

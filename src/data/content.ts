@@ -4,7 +4,7 @@ export { media } from './photos';
 export const site = {
   name: 'Instituto Bicalho',
   tagline: 'Odontologia de Precisão',
-  url: import.meta.env.PUBLIC_SITE_URL || 'https://institutobicalho.com',
+  url: import.meta.env?.PUBLIC_SITE_URL || 'https://institutobicalho.com',
 };
 export type Unit = { id: string; name: string; phone: string; display: string; note: string; address: string; postalCode: string; mapLocation: string; googlePlaceId: string; googleEmbed: string; latitude: number; longitude: number; landmark?: string };
 export const units: Unit[] = [

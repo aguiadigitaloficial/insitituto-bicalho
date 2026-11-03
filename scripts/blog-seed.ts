@@ -22,6 +22,7 @@ async function put(bucket:string,path:string,bytes:Buffer,contentType:string){
 }
 const photos=[media.hero,media.clinic,media.serviceTreatments,media.servicePrecision,media.team,media.serviceAesthetics,media.precision,media.aligners,media.smile,media.serviceOrthodontics,media.clinic,media.hero];
 const existing=await db.from('blog_posts').select('draft').eq('is_demo',true);if(existing.error)throw existing.error;
+if(existing.data.some(p=>!/^demonstracao-editorial-\d+$/.test(p.draft.slug)))throw new Error('A prévia já possui demonstrações personalizadas. Use scripts/blog-presentation.ts; não recrie os exemplos iniciais.');
 for(let i=0;i<12;i++){
  if(existing.data.some(p=>p.draft.slug===`demonstracao-editorial-${i+1}`))continue;
  const photo=photos[i],id=randomUUID(),variants:any[]=[];const original=`originals/${id}.jpg`;const source=await readFile(new URL(`../assets/originals/${photo.original}`,import.meta.url));const dimensions=await sharp(source).metadata();await put('blog-private',original,source,'image/jpeg');

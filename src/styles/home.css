@@ -18,7 +18,7 @@
 .home-page .photo-tags { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-bottom: 12px; color: var(--teal); font-size: var(--type-small); font-weight: 600; line-height: 1.5; }
 .home-page .photo-tags span { white-space: nowrap; }
 .home-page .hero-glass { display: flex; align-items: center; gap: 12px; }
-.home-page .hero-care-symbol { flex: 0 0 32px; width: 32px; height: 32px; object-fit: contain; mix-blend-mode: multiply; }
+.home-page .hero-care-symbol { flex: 0 0 32px; width: 32px; height: 32px; object-fit: cover; object-position: left center; }
 .home-page .hero-glass>div { min-width: 0; }
 .home-page .hero-glass strong { display: block; font-size: var(--type-body); line-height: 1.6; }
 .home-page .hero-glass p { margin-top: 4px; font-size: var(--type-small); line-height: 1.5; }
@@ -31,7 +31,7 @@
 .home-page .partner-photos .photo picture,.home-page .partner-photos .photo img { height: 100%; }
 .home-page .partner-photos .photo img { object-position: 50% 10%; }
 .home-page .portrait-note { display: flex; align-items: center; gap: 12px; padding: 14px; color: var(--ink); font-size: var(--type-small); font-weight: 600; line-height: 1.5; text-align: left; }
-.home-page .portrait-note img { flex: 0 0 28px; width: 28px; height: 28px; object-fit: contain; mix-blend-mode: multiply; }
+.home-page .portrait-note img { flex: 0 0 28px; width: 28px; height: 28px; object-fit: cover; object-position: left center; }
 .home-page .portrait-note>span { min-width: 0; }
 .home-page .portrait-note .text-keep { display: inline-block; }
 .home-page .team-person { min-width: 0; }

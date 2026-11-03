@@ -39,6 +39,14 @@ O segundo comando apenas verifica; o terceiro publica o Worker de prévia e seus
 
 ## Mídia, demonstrações e agendamento
 
+### Exemplos preparados para apresentação
+
+`scripts/blog-presentation.ts` substitui somente as 12 demonstrações iniciais identificadas, usando `scripts/fixtures/blog-presentation.ts`. Exige o projeto, o endereço e o ambiente de prévia confirmados, além do proprietário institucional. O comando sem `--apply` é uma simulação; com `--apply`, guarda backup local ignorado, preserva revisões e o rascunho original, atualiza os exemplos e prepara um rascunho adicional para testes manuais. Uma segunda execução não duplica os exemplos nem gera revisões sem alterações. O seed inicial se recusa a recriar os exemplos genéricos numa prévia já personalizada.
+
+Os exemplos usam autoria institucional e continuam com `is_demo=true`. Tags, relacionados, miniatura independente, meta description separada do trecho, compartilhamento e um complemento JSON-LD de FAQ estão preenchidos. O FAQ complementar corresponde ao conteúdo visível do artigo de agendamento. A marcação automática de BlogPosting continua sendo gerada pelo site.
+
+Os primeiros registros de mídia tinham um carimbo calculado antes da ordenação das chaves pelo JSONB. O preparo reconhece somente esse carimbo legado conhecido, confere a existência de todas as variantes públicas e normaliza o carimbo, sem regenerar pixels. Não altera os metadados de biblioteca de imagens usadas em rascunhos não demonstrativos.
+
 Cloudflare Images prepara WebP/AVIF sem ampliar os originais; EXIF/XMP de direitos autorais são reanexados sem GPS. Originais e rascunhos ficam no bucket privado. Antes de publicar/agendar, o painel prepara uma imagem por requisição; isso evita exceder as chamadas externas do Workers Free. O SQL valida revisão e snapshot da mídia sob bloqueio. Uma edição só aparece publicamente ao clicar em Atualizar.
 
 WebP mantém a resolução original até 2936 px. AVIF é opcional dentro do limite de 1200 px por eixo do serviço; respostas alternativas em WebP/JPEG não são gravadas como AVIF. Quando o conjunto AVIF fica incompleto, a página usa o conjunto WebP completo para preservar a nitidez em telas de alta densidade. Editar apenas alt text, legenda ou crédito não reprocessa os arquivos; mudar os direitos autorais exige preparar novamente a imagem.
