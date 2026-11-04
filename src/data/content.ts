@@ -151,18 +151,25 @@ export const areas: Area[] = [
     ],
   },
 ];
-export const team = [
+export type TeamMember = { name: string; role: string; kind: string; work: string; photo?: keyof typeof media; portraitOrder?: number; unit?: 'joao-monlevade' };
+export const team: TeamMember[] = [
   { name: 'Dr. Bruno Bicalho', role: 'Sócio-proprietário', kind: 'Especialidades', work: 'Implantodontia e Cirurgia Bucomaxilofacial.' },
   { name: 'Dra. Roberta Souza Carneiro', role: 'Sócia-proprietária', kind: 'Especialidades', work: 'Ortodontia e tratamento com alinhadores invisíveis.' },
   { name: 'Dra. Isabella Mazarelo', role: '', kind: 'Áreas de atuação', work: 'Harmonização Orofacial (HOF) e Clínica Geral.' },
   { name: 'Dra. Jéssica Bonfim', role: '', kind: 'Áreas de atuação', work: 'Implantodontia, Próteses Dentárias, Reabilitação Oral e Próteses sobre Implantes.' },
-  { name: 'Dra. Lívia Teixeira', role: '', kind: 'Áreas de atuação', work: 'Prótese Dentária, Dentística, Facetas e Odontologia Estética.' },
+  { name: 'Dra. Lívia Teixeira', role: 'Estética e Reabilitação oral', kind: 'Áreas de atuação', work: 'Prótese Dentária, Dentística, Facetas e Odontologia Estética.', photo: 'teamLivia', portraitOrder: 2, unit: 'joao-monlevade' },
   { name: 'Dra. Daniele', role: '', kind: 'Áreas de atuação', work: 'Cirurgias Odontológicas e Clínica Geral.' },
   { name: 'Dra. Mariane Barros', role: '', kind: 'Áreas de atuação', work: 'Clínica Geral, Clareamento Dental, Prevenção e Saúde Bucal e Restaurações.' },
   { name: 'Dra. Thaís dos Anjos', role: '', kind: 'Especialidades', work: 'Periodontia, ATM e DTM e tratamento do Bruxismo.' },
   { name: 'Dr. Paulo', role: '', kind: 'Especialidade', work: 'Ortodontia.' },
   { name: 'Dra. Ana Luiza Perdigão', role: '', kind: 'Especialidade', work: 'Odontopediatria.' },
   { name: 'Dra. Anne Sousa', role: '', kind: 'Especialidade', work: 'Endodontia, tratamento de canal.' },
+  { name: 'Wanuza', role: 'Gerente', kind: '', work: '', photo: 'teamWanuza', portraitOrder: 1, unit: 'joao-monlevade' },
+  { name: 'Irlam', role: 'Diretora Clínica e ASB', kind: '', work: '', photo: 'teamIrlam', portraitOrder: 3, unit: 'joao-monlevade' },
+  { name: 'Iara', role: 'CRM', kind: '', work: '', photo: 'teamIara', portraitOrder: 4, unit: 'joao-monlevade' },
+  { name: 'Bianca', role: 'CRC', kind: '', work: '', photo: 'teamBianca', portraitOrder: 5, unit: 'joao-monlevade' },
+  { name: 'Eloiza', role: 'Auxiliar de saúde bucal', kind: '', work: '', photo: 'teamEloiza', portraitOrder: 6, unit: 'joao-monlevade' },
+  { name: 'Matheus Souza', role: 'Protético', kind: '', work: '', photo: 'teamMatheus', portraitOrder: 7, unit: 'joao-monlevade' },
   { name: 'Dra. Luísa Lima', role: 'Equipe de Belo Horizonte', kind: 'Áreas de atuação', work: 'Prótese Dentária, Clínica Geral e Harmonização Orofacial (HOF).' },
   { name: 'Dra. Stefany de Oliveira Lima', role: 'Equipe de Belo Horizonte', kind: 'Especialidade', work: 'Próteses Dentárias.' },
   { name: 'Dra. Veridiana Salles', role: 'Equipe de Belo Horizonte', kind: 'Especialidade', work: 'Odontopediatria.' },

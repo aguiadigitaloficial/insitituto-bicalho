@@ -77,7 +77,7 @@ for(const [from,to] of Object.entries(redirects)){const r=await fetch(base+from,
 const sitemap = await (await fetch(base+'/sitemap.xml')).text(); for(const route of routes) assert(sitemap.includes('https://institutobicalho.com'+route)); assert(!sitemap.includes('404'));
 const nojs = await browser.newContext({javaScriptEnabled:false,viewport:{width:390,height:844}}); const np=await nojs.newPage(); await np.goto(base); assert(await np.locator('h1').isVisible()); assert(await np.locator('.noscript-nav').isVisible());
 assert.equal(await np.locator('.team-panel').getAttribute('open'),null);
-await np.locator('.team-panel>summary').click();assert(await np.locator('.team-person').last().isVisible());assert.equal(await np.locator('.team-person').count(),14);
+await np.locator('.team-panel>summary').click();assert(await np.locator('.team-person').last().isVisible());assert.equal(await np.locator('.team-person').count(),20);
 await np.locator('.team-panel>summary').press('Enter');assert.equal(await np.locator('.team-panel').getAttribute('open'),null);
 for(const fragment of ['equipe','equipe-completa']){await np.goto(`${base}/#${fragment}`);await np.waitForFunction(()=>{const r=document.querySelector('.team-panel>summary').getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;});}
 await np.locator('.noscript-nav a[href="/contato/"]').click();assert.equal(new URL(np.url()).pathname,'/contato/');assert.equal(await np.locator('.noscript-nav [aria-current="page"]').textContent(),'Contato');assert.equal(await np.locator('#unidades [data-whatsapp]').count(),2);

@@ -12,7 +12,7 @@ assert.equal(await page.locator('h1').evaluate(el=>getComputedStyle(el).opacity)
 assert.equal((await page.locator('h1').textContent()).replace(/\s+/g,' ').trim(),'Clínica odontológica em João Monlevade e Belo Horizonte.');
 assert.equal(await page.locator('#instituto .team-panel').count(),1);
 assert.equal(await page.locator('.team-panel').getAttribute('open'),null);
-assert.equal(await page.locator('.team-person').count(),14);
+assert.equal(await page.locator('.team-person').count(),20);
 assert.equal(await page.locator('.institution-copy a').count(),0);
 assert.equal(await page.locator('.team-editorial, #team-heading').count(),0);
 assert.equal(await page.locator('#equipe #equipe-completa').count(),1);
@@ -28,7 +28,7 @@ for(const selector of ['.institution-copy>p','.area-card-copy','.unit']){
  assert(await page.locator(selector).evaluateAll(els=>els.every(el=>+getComputedStyle(el).opacity>.99)),`${selector} stayed hidden`);
 }
 await page.locator('.team-panel>summary').click();await page.waitForTimeout(350);
-assert.equal(await page.locator('.team-person').count(),14);
+assert.equal(await page.locator('.team-person').count(),20);
 assert.equal(await page.locator('.team-panel').getAttribute('open'),'');
 await page.locator('.team-panel>summary').click();await page.waitForTimeout(350);
 assert.equal(await page.locator('.team-panel').getAttribute('open'),null);
@@ -66,5 +66,5 @@ assert(await page.locator('main [style]').evaluateAll(els=>els.every(el=>+getCom
 await page.emulateMedia({reducedMotion:'no-preference'});await page.waitForTimeout(300);
 assert.equal(await page.locator('body').getAttribute('data-motion'),'ready');
 assert.deepEqual(errors,[]);
-await writeFile('artifacts/motion-v2.json',JSON.stringify({motion:'approved entrance composition and interactive transitions',headings:'native balanced text; whole-heading entrance',scroll:'fast scroll and return, no hidden content',accordions:'team 14, FAQ, pointer, Enter and close',responsive:'desktop/mobile/orientation/200% text/reduced motion live rebuild',errors},null,2));
+await writeFile('artifacts/motion-v2.json',JSON.stringify({motion:'approved entrance composition and interactive transitions',headings:'native balanced text; whole-heading entrance',scroll:'fast scroll and return, no hidden content',accordions:'team 20, FAQ, pointer, Enter and close',responsive:'desktop/mobile/orientation/200% text/reduced motion live rebuild',errors},null,2));
 console.log('Motion tests passed');await browser.close();

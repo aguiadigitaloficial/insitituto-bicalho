@@ -1,4 +1,4 @@
-export type PhotoDefinition = { src: string; title: string; alt: string; position: string; width: number; height: number; original: string };
+export type PhotoDefinition = { src: string; title: string; alt: string; position: string; width: number; height: number; original: string; widths?: number[] };
 export const photoCopyright = 'Instituto Bicalho Odontologia de Precisão';
 
 // Descriptions identify what is visible; they do not infer procedures or authorship.
@@ -11,6 +11,13 @@ export const media = {
   careOverview: { src: 'official-dental-care-wide', title: 'Profissional e paciente durante atendimento odontológico', alt: 'Atendimento odontológico com profissional e paciente no consultório do Instituto Bicalho', position: '50% 58%', width: 1600, height: 2400, original: 'official-20261026/THA03288.jpg' },
   clinic: { src: 'official-care-room', title: 'Ambiente de atendimento do Instituto Bicalho', alt: 'Vista do consultório odontológico do Instituto Bicalho, com cadeira clínica, mesa e bancada', position: '50% 54%', width: 1600, height: 1066, original: 'official-20261026/DSC01016.jpg' },
   team: { src: 'official-team-meeting', title: 'Reunião da equipe do Instituto Bicalho', alt: 'Equipe do Instituto Bicalho reunida à mesa', position: 'center', width: 1600, height: 1066, original: 'official-20261026/THA03124.jpg' },
+  teamWanuza: { src: 'official-team-jm-wanuza', title: 'Wanuza — Gerente', alt: 'Retrato de Wanuza, gerente da equipe de João Monlevade do Instituto Bicalho', position: '50% 15%', width: 1066, height: 1600, original: 'team-jm-20261104/photo-13.jpg', widths: [480, 800, 1066] },
+  teamLivia: { src: 'official-team-jm-livia-teixeira', title: 'Dra. Lívia Teixeira — Estética e Reabilitação oral', alt: 'Retrato da Dra. Lívia Teixeira, da equipe de João Monlevade do Instituto Bicalho', position: '50% 15%', width: 1066, height: 1600, original: 'team-jm-20261104/photo-12.jpg', widths: [480, 800, 1066] },
+  teamIrlam: { src: 'official-team-jm-irlam', title: 'Irlam — Diretora Clínica e ASB', alt: 'Retrato de Irlam, Diretora Clínica e ASB da equipe de João Monlevade do Instituto Bicalho', position: '50% 15%', width: 1066, height: 1600, original: 'team-jm-20261104/photo-11.jpg', widths: [480, 800, 1066] },
+  teamIara: { src: 'official-team-jm-iara', title: 'Iara — CRM', alt: 'Retrato de Iara, CRM da equipe de João Monlevade do Instituto Bicalho', position: '50% 15%', width: 1066, height: 1600, original: 'team-jm-20261104/photo-10.jpg', widths: [480, 800, 1066] },
+  teamBianca: { src: 'official-team-jm-bianca', title: 'Bianca — CRC', alt: 'Retrato de Bianca, CRC da equipe de João Monlevade do Instituto Bicalho', position: '50% 15%', width: 1067, height: 1600, original: 'team-jm-20261104/photo-09.jpg', widths: [480, 800, 1067] },
+  teamEloiza: { src: 'official-team-jm-eloiza', title: 'Eloiza — Auxiliar de saúde bucal', alt: 'Retrato de Eloiza, auxiliar de saúde bucal da equipe de João Monlevade do Instituto Bicalho', position: '50% 15%', width: 1066, height: 1600, original: 'team-jm-20261104/photo-08.jpg', widths: [480, 800, 1066] },
+  teamMatheus: { src: 'official-team-jm-matheus-souza', title: 'Matheus Souza — Protético', alt: 'Retrato de Matheus Souza, protético da equipe de João Monlevade do Instituto Bicalho', position: '50% 15%', width: 1066, height: 1600, original: 'team-jm-20261104/photo-07.jpg', widths: [480, 800, 1066] },
   serviceTreatments: { src: 'official-service-tratamentos', title: 'Consultório com painel de anatomia dental do Instituto Bicalho', alt: 'Consultório do Instituto Bicalho com painel de anatomia dental, cadeira odontológica e mesa de atendimento', position: '32% 58%', width: 1600, height: 1066, original: 'official-20261026/DSC01076.jpg' },
   serviceAesthetics: { src: 'official-service-estetica', title: 'Consultório com espelho do Instituto Bicalho', alt: 'Consultório do Instituto Bicalho com espelho, cadeira odontológica e bancada clínica', position: '42% 58%', width: 1600, height: 1066, original: 'official-20261026/DSC01054.jpg' },
   serviceOrthodontics: { src: 'official-service-ortodontia', title: 'Estrutura clínica do Instituto Bicalho', alt: 'Cadeira odontológica, equipamentos e mesa de atendimento em um consultório do Instituto Bicalho', position: '60% 72%', width: 1600, height: 1066, original: 'official-20261026/DSC00998.jpg' },
@@ -21,15 +28,17 @@ export const media = {
   professional: { src: 'professional-01', title: 'Retrato de profissional do Instituto Bicalho', alt: 'Profissional do Instituto Bicalho em retrato institucional', position: '50% 28%', width: 1600, height: 2400, original: 'professional-01.jpg' },
 } satisfies Record<string, PhotoDefinition>;
 
-export const photoWidths = (photo: PhotoDefinition) => photo.src.startsWith('official-')
+export const photoWidths = (photo: PhotoDefinition) => photo.widths ?? (photo.src.startsWith('official-')
   ? photo.width > photo.height ? [480, 800, 1200, 1600, 1920, 2560, 2936] : [480, 800, 1200, 1600, 1920]
-  : [480, 800, 1200, 1600];
+  : [480, 800, 1200, 1600]);
+export const photoWidthAt = (photo: PhotoDefinition, preferred: number) => photoWidths(photo).filter(width => width <= preferred).at(-1) ?? photoWidths(photo)[0];
 
 // Account for the full raster behind object-fit:cover, including the approved zoomed crops.
 // These server-rendered fallbacks also work before JavaScript and with scripts disabled.
 export const photoSizes = {
   hero: '(min-width: 1200px) 571px, (min-width: 600px) calc(100vw - 56px), max(calc(100vw - 40px), 421px)',
   partnersTogether: '(min-width: 1024px) min(560px, calc((min(100vw - 56px, 1240px) - 40px) / 2.12)), (min-width: 600px) min(640px, calc(100vw - 56px)), calc(100vw - 40px)',
+  teamPortrait: '(min-width: 1200px) calc((min(100vw - 80px, 1240px) - 124px) / 3), (min-width: 600px) calc((100vw - 132px) / 2), calc(100vw - 72px)',
   innerLandscape: '(min-width: 1200px) 721px, (min-width: 600px) max(calc(100vw - 56px), 511px), max(calc(100vw - 40px), 511px)',
   innerPortrait: '(min-width: 1304px) 567px, (min-width: 1200px) calc((100vw - 104px) / 2.12), (min-width: 600px) calc(100vw - 56px), calc(100vw - 40px)',
   area: [

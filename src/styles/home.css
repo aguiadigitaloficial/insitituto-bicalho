@@ -35,6 +35,12 @@
 .home-page .portrait-note>span { min-width: 0; }
 .home-page .portrait-note .text-keep { display: inline-block; }
 .home-page .team-person { min-width: 0; }
+.home-page .team-portraits { align-items: start; }
+.home-page .team-portrait { width: 100%; aspect-ratio: 4 / 5; height: auto; border-radius: 16px; overflow: hidden; margin-bottom: 16px; }
+.home-page .team-portrait picture,.home-page .team-portrait img { width: 100%; height: 100%; }
+.home-page .team-portrait img { object-fit: cover; object-position: var(--photo-position); }
+.home-page .team-portraits .team-person { border-top: 0; }
+.home-page .team-roster { margin-top: 16px; }
 .service-related { max-width: 100%; margin-top: 18px; }
 
 @media(min-width:600px) {

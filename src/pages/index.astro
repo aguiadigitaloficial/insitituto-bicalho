@@ -7,9 +7,12 @@ import BookingLink from '../components/BookingLink.astro';
 import Precision from '../components/Precision.astro';
 import Faq from '../components/Faq.astro';
 import Units from '../components/Units.astro';
+import TeamPerson from '../components/TeamPerson.astro';
 import { areas, team, homeQuestions } from '../data/content';
 import { photoSizes } from '../data/photos';
 const photos = ['careOverview', 'smile', 'aligners', 'precision'] as const;
+const portraitTeam = team.filter(person => person.photo).sort((a,b) => a.portraitOrder! - b.portraitOrder!);
+const otherTeam = team.filter(person => !person.photo);
 ---
 <Layout title="Instituto Bicalho | Clínica Odontológica de Precisão" appendBrand={false} description="Clínica odontológica em João Monlevade e Belo Horizonte. Equipe multidisciplinar de dentistas, planejamento individualizado e tecnologia digital do diagnóstico ao tratamento.">
   <section class="hero" aria-labelledby="hero-heading">
@@ -38,7 +41,7 @@ const photos = ['careOverview', 'smile', 'aligners', 'precision'] as const;
         <div class="partner-photos glass"><Photo name="partnersTogether" sizes={photoSizes.partnersTogether}/><div class="portrait-note"><img src="/assets/logo-transparent-600.webp" width="28" height="28" alt="" aria-hidden="true"/><span><Text text="Dr. Bruno Bicalho e Dra. Roberta Souza Carneiro, sócios do Instituto Bicalho."/></span></div></div>
       </div>
       <div id="equipe">
-        <details class="team-panel" id="equipe-completa"><summary><span>Conheça nossa equipe<small>Profissionais e áreas de atuação</small></span><span class="round-arrow"><Icon name="plus" size={22}/></span></summary><div class="team-panel-content"><Photo name="team" class="team-photo" sizes="(min-width: 1000px) 880px, 100vw"/><div class="team-grid">{team.map(person => <article class="team-person"><h3><Text keepEnd={false} text={person.name}/></h3>{person.role && <span class="team-role">{person.role}</span>}<p><span class="team-kind">{person.kind}</span><Text text={person.work}/></p></article>)}</div></div></details>
+        <details class="team-panel" id="equipe-completa"><summary><span>Conheça nossa equipe<small>Profissionais e áreas de atuação</small></span><span class="round-arrow"><Icon name="plus" size={22}/></span></summary><div class="team-panel-content"><Photo name="team" class="team-photo" sizes="(min-width: 1000px) 880px, 100vw"/><div class="team-grid team-portraits">{portraitTeam.map(person => <TeamPerson person={person}/>)}</div><div class="team-grid team-roster">{otherTeam.map(person => <TeamPerson person={person}/>)}</div></div></details>
       </div>
     </div>
   </section>

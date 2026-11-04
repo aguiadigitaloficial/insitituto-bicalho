@@ -1,8 +1,8 @@
 [
   {
     "route": "/",
-    "blocks": 148,
-    "sha256": "61330a7527e271b213851ffe4a116920c75d00008b7a8a26e8001823d6a84f18"
+    "blocks": 154,
+    "sha256": "fdad26e6626a85626b1fb9c5bd113108f66ea3ed7ee8c2b2e48a49df0dd566e6"
   },
   {
     "route": "/tratamentos/",

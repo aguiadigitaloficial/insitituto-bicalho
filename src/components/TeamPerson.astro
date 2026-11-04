@@ -1,0 +1,14 @@
+---
+import type { TeamMember } from '../data/content';
+import Photo from './Photo.astro';
+import Text from './TypographyText.astro';
+import { photoSizes } from '../data/photos';
+interface Props { person: TeamMember }
+const { person } = Astro.props;
+---
+<article class="team-person" data-unit={person.unit}>
+  {person.photo && <Photo name={person.photo} class="team-portrait" sizes={photoSizes.teamPortrait}/>}
+  <h3><Text keepEnd={false} text={person.name}/></h3>
+  {person.role && <span class="team-role">{person.role}</span>}
+  {(person.kind || person.work) && <p>{person.kind && <span class="team-kind">{person.kind}</span>}<Text text={person.work}/></p>}
+</article>

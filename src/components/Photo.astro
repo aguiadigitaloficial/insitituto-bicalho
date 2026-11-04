@@ -1,6 +1,6 @@
 ---
 import { media, site } from '../data/content';
-import { photoWidths, photoSizes } from '../data/photos';
+import { photoWidths, photoSizes, photoWidthAt, photoCopyright } from '../data/photos';
 interface Props { name: keyof typeof media; class?: string; eager?: boolean; sizes?: string }
 const { name, class: className = '', eager = false } = Astro.props;
 const photo = media[name];
@@ -8,15 +8,15 @@ const sizes = Astro.props.sizes ?? (photo.width > photo.height ? photoSizes.inne
 const widths = photoWidths(photo);
 const imageSchema = {
   '@context': 'https://schema.org', '@type': 'ImageObject', '@id': `${site.url}/#foto-${photo.src}`,
-  contentUrl: `${site.url}/assets/${photo.src}-1600.webp`, thumbnailUrl: `${site.url}/assets/${photo.src}-480.webp`,
+  contentUrl: `${site.url}/assets/${photo.src}-${photoWidthAt(photo,1600)}.webp`, thumbnailUrl: `${site.url}/assets/${photo.src}-${photoWidthAt(photo,480)}.webp`,
   name: photo.title, description: photo.alt, width: photo.width, height: photo.height, encodingFormat: 'image/webp', inLanguage: 'pt-BR',
-  creditText: 'Acervo institucional do Instituto Bicalho', about: { '@id': `${site.url}/#organization` },
+  creditText: 'Acervo institucional do Instituto Bicalho', ...('widths' in photo ? { copyrightNotice: photoCopyright } : {}), about: { '@id': `${site.url}/#organization` },
 };
 ---
 <figure class:list={['photo', className]} style={`--photo-position:${photo.position}`}>
   <picture>
     <source type="image/avif" srcset={widths.map(w => `/assets/${photo.src}-${w}.avif ${w}w`).join(', ')} sizes={sizes}/>
-    <img src={`/assets/${photo.src}-1200.webp`} srcset={widths.map(w => `/assets/${photo.src}-${w}.webp ${w}w`).join(', ')} sizes={sizes} width={photo.width} height={photo.height} alt={photo.alt} loading={eager ? 'eager' : 'lazy'} fetchpriority={eager ? 'high' : 'auto'} decoding="async"/>
+    <img src={`/assets/${photo.src}-${photoWidthAt(photo,1200)}.webp`} srcset={widths.map(w => `/assets/${photo.src}-${w}.webp ${w}w`).join(', ')} sizes={sizes} width={photo.width} height={photo.height} alt={photo.alt} loading={eager ? 'eager' : 'lazy'} fetchpriority={eager ? 'high' : 'auto'} decoding="async"/>
   </picture>
   <script type="application/ld+json" set:html={JSON.stringify(imageSchema).replace(/</g, '\\u003c')}/>
 </figure>
