@@ -3,14 +3,14 @@ import type { TeamMember } from '../data/content';
 import Photo from './Photo.astro';
 import Text from './TypographyText.astro';
 import { photoSizes } from '../data/photos';
-interface Props { person: TeamMember }
-const { person } = Astro.props;
+interface Props { person: TeamMember; headingTag: 'h4' | 'h5' }
+const { person, headingTag: Heading } = Astro.props;
 ---
-<article class:list={['team-person', { 'team-person-with-photo': Boolean(person.photo) }]} data-unit={person.unit}>
+<article class:list={['team-person', { 'team-person-with-photo': Boolean(person.photo) }]} data-unit={person.unit} data-category={person.category}>
   <div class="team-person-heading">
     {person.photo && <Photo name={person.photo} class="team-portrait" sizes={photoSizes.teamPortrait}/>}
     <div class="team-person-identity">
-      <h3><Text keepEnd={false} text={person.name}/></h3>
+      <Heading class="team-name"><Text keepEnd={false} text={person.name}/></Heading>
       {person.role && <span class="team-role">{person.role}</span>}
     </div>
   </div>

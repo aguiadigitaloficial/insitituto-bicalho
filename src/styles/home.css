@@ -35,11 +35,16 @@
 .home-page .portrait-note>span { min-width: 0; }
 .home-page .portrait-note .text-keep { display: inline-block; }
 .home-page .team-panel-content { padding: 0 min(1rem,4vw) 1rem; }
+.home-page .team-section { min-width: 0; }
+.home-page .team-section + .team-section { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+.home-page .team-section-title { margin: 0 0 1rem; font-size: 1.375rem; font-weight: 600; line-height: 1.3; color: var(--ink); }
+.home-page .team-group + .team-group { margin-top: 1.25rem; }
+.home-page .team-subgroup-title { margin: 0 0 .75rem; font-size: 1rem; font-weight: 600; line-height: 1.5; color: var(--teal); }
 .home-page .team-grid {
   --team-columns: 1;
   display: grid;
   /* The breakpoint caps the columns; the rem minimum allows enlarged text to reflow. */
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(20rem, calc((100% - (var(--team-columns) - 1) * 1rem) / var(--team-columns)))), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, max(20rem, calc((100% - (var(--team-columns) - 1) * 1rem) / var(--team-columns)))), 1fr));
   align-items: stretch;
   gap: 1rem;
 }
@@ -57,7 +62,7 @@
 .home-page .team-person-heading { display: grid; grid-template-columns: minmax(0,1fr); align-items: center; gap: .75rem; min-width: 0; }
 .home-page .team-person-with-photo .team-person-heading { grid-template-columns: minmax(0,var(--team-portrait-width)) minmax(0,1fr); }
 .home-page .team-person-identity { min-width: 0; }
-.home-page .team-person h3 { font-size: 1.125rem; line-height: 1.3; text-wrap: pretty; }
+.home-page .team-name { margin: 0; font-size: 1.125rem; font-weight: 600; line-height: 1.3; text-wrap: pretty; }
 .home-page .team-role { display: block; margin-top: .375rem; color: var(--teal); font-weight: 600; font-size: .875rem; line-height: 1.5; }
 .home-page .team-description { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--line); font-size: 1rem; line-height: 1.6; }
 .home-page .team-kind { display: block; margin-bottom: .25rem; color: var(--muted); font-size: .875rem; line-height: 1.5; }

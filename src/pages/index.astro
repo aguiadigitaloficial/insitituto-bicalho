@@ -11,8 +11,22 @@ import TeamPerson from '../components/TeamPerson.astro';
 import { areas, team, homeQuestions } from '../data/content';
 import { photoSizes } from '../data/photos';
 const photos = ['careOverview', 'smile', 'aligners', 'precision'] as const;
-const portraitTeam = team.filter(person => person.photo).sort((a,b) => a.portraitOrder! - b.portraitOrder!);
-const otherTeam = team.filter(person => !person.photo);
+const orderedTeam = [...team].sort((a,b) => a.displayOrder - b.displayOrder);
+const teamCategories = [
+  { id: 'clinical', title: 'Dentistas' },
+  { id: 'management', title: 'Gestão e administração' },
+  { id: 'support', title: 'Apoio clínico e atendimento' },
+] as const;
+const teamSections = [
+  { id: 'partners', title: 'Sócios', groups: [{ id: 'partners', title: null, people: orderedTeam.filter(person => person.category === 'partners') }] },
+  ...([
+    { id: 'joao-monlevade', title: 'João Monlevade' },
+    { id: 'belo-horizonte', title: 'Belo Horizonte' },
+  ] as const).map(unit => ({ ...unit, groups: teamCategories.map(category => ({
+    ...category, people: orderedTeam.filter(person => person.unit === unit.id && person.category === category.id),
+  })).filter(group => group.people.length) })),
+  { id: 'general', title: 'Equipe clínica', groups: [{ id: 'clinical', title: null, people: orderedTeam.filter(person => !person.unit && person.category !== 'partners') }] },
+];
 ---
 <Layout title="Instituto Bicalho | Clínica Odontológica de Precisão" appendBrand={false} description="Clínica odontológica em João Monlevade e Belo Horizonte. Equipe multidisciplinar de dentistas, planejamento individualizado e tecnologia digital do diagnóstico ao tratamento.">
   <section class="hero" aria-labelledby="hero-heading">
@@ -41,7 +55,22 @@ const otherTeam = team.filter(person => !person.photo);
         <div class="partner-photos glass"><Photo name="partnersTogether" sizes={photoSizes.partnersTogether}/><div class="portrait-note"><img src="/assets/logo-transparent-600.webp" width="28" height="28" alt="" aria-hidden="true"/><span><Text text="Dr. Bruno Bicalho e Dra. Roberta Souza Carneiro, sócios do Instituto Bicalho."/></span></div></div>
       </div>
       <div id="equipe">
-        <details class="team-panel" id="equipe-completa"><summary><span>Conheça nossa equipe<small>Profissionais e áreas de atuação</small></span><span class="round-arrow"><Icon name="plus" size={22}/></span></summary><div class="team-panel-content"><div class="team-grid team-catalog">{[...portraitTeam, ...otherTeam].map(person => <TeamPerson person={person}/>)}</div></div></details>
+        <details class="team-panel" id="equipe-completa">
+          <summary><span>Conheça nossa equipe<small>Profissionais e áreas de atuação</small></span><span class="round-arrow"><Icon name="plus" size={22}/></span></summary>
+          <div class="team-panel-content team-catalog">
+            {teamSections.map(section => (
+              <section class="team-section" data-team-section={section.id} aria-labelledby={`team-${section.id}`}>
+                <h3 class="team-section-title" id={`team-${section.id}`}>{section.title}</h3>
+                {section.groups.map(group => (
+                  <div class:list={['team-group', { 'team-subgroup': Boolean(group.title) }]} data-team-category={group.title ? group.id : undefined}>
+                    {group.title && <h4 class="team-subgroup-title">{group.title}</h4>}
+                    <div class="team-grid">{group.people.map(person => <TeamPerson person={person} headingTag={group.title ? 'h5' : 'h4'}/>)}</div>
+                  </div>
+                ))}
+              </section>
+            ))}
+          </div>
+        </details>
       </div>
     </div>
   </section>
