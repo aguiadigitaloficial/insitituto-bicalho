@@ -10,13 +10,13 @@ function updatePhotoSize(image: HTMLImageElement) {
   const width = image.clientWidth, height = image.clientHeight;
   if (!width || !height) return;
   const aspect = Number(image.getAttribute('width')) / Number(image.getAttribute('height'));
-  const slot = Math.ceil(getComputedStyle(image).objectFit === 'cover' ? Math.max(width, height * aspect) : width);
+  const slot = Math.ceil(!image.closest('.blog-photo.is-framed') && getComputedStyle(image).objectFit === 'cover' ? Math.max(width, height * aspect) : width);
   const sizes = `${slot}px`;
   if (image.sizes === sizes) return;
   image.closest('picture')?.querySelectorAll('source').forEach(source => { source.sizes = sizes; });
   image.sizes = sizes;
 }
-const photoImages = $$<HTMLImageElement>('.photo img');
+const photoImages = $$<HTMLImageElement>('.photo img, .blog-photo img');
 if ('ResizeObserver' in window) {
   const photoObserver = new ResizeObserver(entries => entries.forEach(entry => updatePhotoSize(entry.target as HTMLImageElement)));
   photoImages.forEach(image => { updatePhotoSize(image); photoObserver.observe(image); });

@@ -1,10 +1,19 @@
 ---
 import {assetUrl} from '../../lib/blog/server';
 import type {Asset} from '../../lib/blog/model';
-interface Props{asset?:Asset;priority?:boolean;sizes?:string}
-const {asset,priority=false,sizes='(min-width:1320px) 700px, (min-width:1024px) calc((100vw - 88px) * .5625), (min-width:600px) calc((100vw - 56px) * 1.125), calc((100vw - 40px) * 1.125)'}=Astro.props;
-const source=(format:string)=>asset?.variants.filter(v=>v.format===format).map(v=>`${assetUrl(asset!,v.width,format)} ${v.width}w`).join(', ');
+import {FRAME_RATIOS, frameGeometry, frameStyle, framedSizes, resolveFrame, type Frame, type FrameContext} from '../../lib/blog/framing';
+import '../../styles/blog-framing.css';
+interface Props{asset?:Asset;priority?:boolean;sizes?:string;context?:FrameContext;frame?:Frame;privateSrc?:string}
+const {asset,priority=false,sizes='(min-width:1320px) 620px, (min-width:1024px) calc((100vw - 88px) * .5), (min-width:600px) calc(100vw - 56px), calc(100vw - 40px)',context='article',frame:rawFrame,privateSrc}=Astro.props;
+const frame=resolveFrame(rawFrame);
+const geometry=frameGeometry(asset?.width||1,asset?.height||1,context,frame);
+const responsiveSizes=framedSizes(sizes,geometry.width);
+const privateUrl=(width:number)=>`${privateSrc}${privateSrc?.includes('?')?'&':'?'}width=${Math.min(2936,Math.max(1,Math.ceil(width)))}`;
+const source=(format:string)=>asset?.variants.filter(v=>v.format===format).map(v=>`${privateSrc?privateUrl(v.width):assetUrl(asset!,v.width,format)} ${v.width}w`).join(', ');
 // A partial AVIF set must not cap the resolution chosen by AVIF-capable Retina browsers.
-const fullAvif=asset&&Math.max(0,...asset.variants.filter(v=>v.format==='avif').map(v=>v.width))>=Math.max(1,...asset.variants.filter(v=>v.format==='webp').map(v=>v.width));
+const fullAvif=!privateSrc&&asset&&Math.max(0,...asset.variants.filter(v=>v.format==='avif').map(v=>v.width))>=Math.max(1,...asset.variants.filter(v=>v.format==='webp').map(v=>v.width));
 ---
-{asset&&<picture class="blog-photo">{fullAvif&&<source type="image/avif" srcset={source('avif')} sizes={sizes}/>}<img src={assetUrl(asset,1200)} srcset={source('webp')} sizes={sizes} width={asset.width} height={asset.height} alt={asset.alt} loading={priority?'eager':'lazy'} fetchpriority={priority?'high':'auto'}/></picture>}
+{asset&&<picture class="blog-photo is-framed" style={`--blog-frame-ratio:${FRAME_RATIOS[context]}`} data-frame-context={context} data-frame-mode={frame.mode} data-frame-x={frame.x} data-frame-y={frame.y} data-frame-zoom={frame.zoom}>
+ {fullAvif&&<source type="image/avif" srcset={source('avif')} sizes={responsiveSizes}/>}
+ <img src={privateSrc?privateUrl(1200):assetUrl(asset,1200)} srcset={source('webp')} sizes={responsiveSizes} style={frameStyle(asset.width,asset.height,context,frame)} width={asset.width} height={asset.height} alt={asset.alt} loading={priority?'eager':'lazy'} fetchpriority={priority?'high':'auto'}/>
+</picture>}

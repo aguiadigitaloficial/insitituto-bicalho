@@ -42,7 +42,12 @@ export const ALL:APIRoute=async(ctx)=>{
    return reply({posts:posts.data,taxonomies:taxonomies.data,media:media.data,publications:publications.data,schedules:schedules.data,role,email:user.email});
   }
   if(action==='media-file'){
-   const assetId=uuid.parse(ctx.url.searchParams.get('id'));const r=await c.from('blog_media').select('*').eq('id',assetId).single();if(r.error)throw new HttpError(404,'Imagem não encontrada.');const path=r.data.variants?.find((v:any)=>v.format==='webp'&&v.width>=480)?.path||r.data.original_path;const result=await c.storage.from('blog-private').createSignedUrl(path,120);if(result.error)throw result.error;return new Response(null,{status:302,headers:{...privateHeaders(),Location:result.data.signedUrl}});
+   const assetId=uuid.parse(ctx.url.searchParams.get('id'));
+   const width=z.coerce.number().int().min(1).max(2936).parse(ctx.url.searchParams.get('width')??480);
+   const r=await c.from('blog_media').select('*').eq('id',assetId).single();if(r.error)throw new HttpError(404,'Imagem não encontrada.');
+   const variants=(r.data.variants||[]).filter((v:any)=>v.format==='webp').sort((a:any,b:any)=>a.width-b.width);
+   const path=(variants.find((v:any)=>v.width>=width)||variants.at(-1))?.path||r.data.original_path;
+   const result=await c.storage.from('blog-private').createSignedUrl(path,120);if(result.error)throw result.error;return new Response(null,{status:302,headers:{...privateHeaders(),Location:result.data.signedUrl}});
   }
   if(action==='revisions'){const postId=uuid.parse(ctx.url.searchParams.get('id'));const r=await c.from('blog_revisions').select('*').eq('post_id',postId).order('version',{ascending:false}).limit(100);if(r.error)throw r.error;return reply(r.data);}
   const body=await requestBody(ctx.request);

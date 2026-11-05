@@ -5,3 +5,10 @@
 @media(prefers-reduced-motion:reduce){.category-rail{scroll-behavior:auto}}
 .article-opening>div,.blog-opening>.container>div,.post-card-copy{min-width:0}.demo-label{max-width:100%;overflow-wrap:anywhere}.blog-booking .button{max-width:100%}
 .blog-opening .text-link,.post-category{color:#006d76}
+/* Text-only blog actions do not reserve the icon space used by booking buttons. */
+.blog-search>div{align-items:stretch}
+.blog-search input{min-height:3.25rem}
+.blog-search .button,.blog-message>.button{justify-content:center;text-align:center;padding:.75rem 1.25rem;min-height:3.25rem;line-height:1.4}
+.article-share{align-items:center}
+.article-share>a,.article-share>button{display:inline-flex;align-items:center;justify-content:center;min-height:2.75rem;padding:.5rem 0;line-height:1.5;text-align:center;text-underline-offset:.2em}
+@media(max-width:599px){.blog-search>div{flex-wrap:wrap}.blog-search .button{width:100%}}

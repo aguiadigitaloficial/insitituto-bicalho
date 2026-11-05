@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { imageFramingSchema } from './framing';
 
 export const COPYRIGHT = 'Instituto Bicalho Odontologia de Precisão';
 export const slugify = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -14,6 +15,7 @@ export const snapshotSchema = z.object({
   title: z.string().max(300), slug: z.string().max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$|^$/),
   authorId: z.union([id, z.literal('')]), categoryIds: z.array(id).max(20), primaryCategoryId: z.union([id, z.literal('')]), tagIds: z.array(id).max(50),
   coverId: z.union([id, z.literal('')]), thumbnailId: z.union([id, z.literal('')]), showCover: z.boolean(), excerpt: short,
+  imageFraming: imageFramingSchema.optional(),
   featured: z.boolean(), relatedIds: z.array(id).max(3), content: z.record(z.string(), z.unknown()),
   seo: z.object({title: z.string().max(300), description: short, focusKeyword: z.string().max(150), index: z.boolean(), nofollow: z.boolean(), noimageindex: z.boolean(), nosnippet: z.boolean()}),
   social: z.object({title: z.string().max(300), description: short, imageId: z.union([id,z.literal('')]), alt: short, twitterTitle: z.string().max(300), twitterDescription: short, twitterImageId: z.union([id,z.literal('')]), twitterAlt: short}),

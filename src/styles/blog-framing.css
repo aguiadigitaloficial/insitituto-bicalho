@@ -1,0 +1,17 @@
+/* Shared by public and private article previews. Intrinsic proportions are retained by framing.ts. */
+.blog-photo.is-framed {
+  display: block;
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--surface, #f3f7f7);
+  aspect-ratio: var(--blog-frame-ratio);
+}
+.blog-photo.is-framed > img {
+  display: block;
+  position: absolute;
+  max-width: none;
+  max-height: none;
+  object-fit: fill;
+}
