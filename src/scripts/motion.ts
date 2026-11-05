@@ -15,7 +15,11 @@ export async function initMotion() {
     // Interactive tweens may capture an in-flight press as their revert baseline.
     // Always restore the resting CTA before rebuilding or disabling motion.
     gsap.set('[data-booking-cta], [data-booking-cta] .brand-button-symbol', { clearProps: 'transform,backgroundColor' });
-    if (reduced) return;
+    if (reduced) {
+      // A preference change must not later replay a section the visitor already read.
+      all('.digital-flow').forEach(flow => { revealed.add(flow); });
+      return;
+    }
     const cleanups: (() => void)[] = [];
     const distance = mobile ? 14 : 42;
     const triggerFor = (element: Element) => ({ trigger: element.matches('.unit') ? element.closest('.units') || element : element, start: mobile ? 'top 82%' : 'top 92%', once: true, onLeave: (self: ScrollTrigger) => { self.animation?.progress(1); } });
@@ -60,6 +64,9 @@ export async function initMotion() {
         duration: mobile ? .6 : .75, ease: 'power3.out',
       });
       timeline.from(photo.querySelector('img'), { scale: 1.035, duration: mobile ? .7 : .9, ease: 'power2.out' }, 0);
+      // Resolve the populated timeline before the next trigger is created. This
+      // avoids recursive refreshes of pending timelines on breakpoint changes.
+      timeline.scrollTrigger?.refresh();
     });
 
     all('.institution-copy>p, .section-intro>p, .precision-intro>p, .section-heading>p, .area-card-copy, .unit, .service, .portrait-note').forEach((element, index) => {
@@ -68,9 +75,21 @@ export async function initMotion() {
       gsap.from(element, { opacity: 0, y: card ? distance : mobile ? 10 : 18, x: card && !mobile ? (index % 2 ? 12 : -12) : 0, duration: card ? .7 : .55, ease: 'power3.out', scrollTrigger: triggerFor(element), onComplete: () => { revealed.add(element); } });
     });
 
-    const steps = all('.digital-flow li');
-    all<SVGPathElement>('.flow-connection path').forEach(path => {
-      gsap.fromTo(path, { strokeDashoffset: 100 }, { strokeDashoffset: 0, ease: 'none', scrollTrigger: { trigger: path.closest('li'), start: 'top 80%', end: 'bottom 45%', scrub: .35 } });
+    // The complete flow enters once; its numbers and text never animate separately.
+    all('.digital-flow').forEach(flow => {
+      if (revealed.has(flow)) return;
+      gsap.from(flow, {
+        y: 12, opacity: 0, duration: .6, ease: 'power3.out',
+        clearProps: 'transform,opacity',
+        scrollTrigger: {
+          trigger: flow, start: 'top 85%', once: true,
+          toggleActions: 'play complete none none',
+        },
+        // If the viewport changes mid-entrance, matchMedia restores the visible
+        // baseline instead of starting the same list a second time.
+        onStart: () => { revealed.add(flow); },
+        onComplete: () => { revealed.add(flow); },
+      });
     });
     all<HTMLElement>('[data-booking-cta]').forEach((button, index) => {
       const circle = button.querySelector('.brand-button-symbol');
@@ -98,11 +117,6 @@ export async function initMotion() {
     const chatHandler = (event: Event) => context.animateChat(event);
     document.addEventListener('bicalho:chat-step', chatHandler);
     cleanups.push(() => document.removeEventListener('bicalho:chat-step', chatHandler));
-    steps.forEach((step, index) => {
-      ScrollTrigger.create({ trigger: step, start: mobile ? 'top 75%' : `top ${80-index*12}%`, end: 'bottom 20%',
-        onEnter: () => step.classList.add('is-current'), onLeaveBack: () => step.classList.remove('is-current'),
-      });
-    });
 
     // Native details remain fully functional without JS. GSAP adds a short height transition.
     all<HTMLDetailsElement>('.faq-list details, .team-panel').forEach(details => {
@@ -144,7 +158,7 @@ export async function initMotion() {
     const menuObserver = new MutationObserver(() => context.animateMenu());
     menuObserver.observe(menu, { attributes: true, attributeFilter: ['hidden'] });
     ScrollTrigger.refresh();
-    return () => { dialogObserver.disconnect(); menuObserver.disconnect(); cleanups.forEach(cleanup => cleanup()); steps.forEach(step => step.classList.remove('is-current')); };
+    return () => { dialogObserver.disconnect(); menuObserver.disconnect(); cleanups.forEach(cleanup => cleanup()); };
   });
   // Refresh document geometry after native details and image decodes as well.
   let refreshTimer: ReturnType<typeof setTimeout>;

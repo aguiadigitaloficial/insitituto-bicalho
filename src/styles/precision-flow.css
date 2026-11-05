@@ -1,0 +1,53 @@
+/* One stable composition for the three stages, independent of animation state. */
+.digital-flow {
+  list-style: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2rem;
+  margin: 2rem 0;
+  padding: 0;
+}
+
+.digital-flow > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.digital-flow > li > div {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.digital-flow .flow-number {
+  display: grid;
+  place-items: center;
+  flex: 0 0 2.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid #91dce0;
+  border-radius: 50%;
+  background: #91dce0;
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+}
+
+.digital-flow h3 { padding-top: .25rem; }
+.digital-flow p { color: #d1e3e8; margin-top: .5rem; }
+.digital-flow small { display: block; color: #afc9d4; margin-top: .25rem; }
+
+@media (max-width: 599px) {
+  /* Keep the reading width usable when the visitor enlarges their font. */
+  .precision > .container {
+    width: min(calc(100% - min(2.5rem, 12.5vw)), 1240px);
+  }
+}
+
+@media (min-width: 1200px) {
+  .digital-flow {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+    margin-block: 2.5rem;
+  }
+}
