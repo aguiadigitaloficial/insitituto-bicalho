@@ -7,7 +7,6 @@
 .inner-hero-copy>p,.service p{max-width:65ch}
 
 .team-panel{margin-top:32px}.team-panel>summary{padding:20px}.team-person{padding-block:20px}
-.team-photo{max-width:880px;margin:0 auto 24px}.team-photo,.team-photo picture,.team-photo img{height:auto}.team-photo picture{overflow:hidden}.team-photo img{aspect-ratio:2936/1957;object-fit:contain}
 .area-card{min-height:390px;padding-top:64px}.area-card-copy{padding:18px}
 .area-grid .area-card-1{min-height:clamp(32.5rem,143vw,35rem)}.area-card-1 img{object-position:var(--photo-position)}.area-card-2 img,.area-card-3 img{object-position:var(--photo-position)}
 .area-card-3 .area-photo img{position:absolute;bottom:0;height:160%;object-position:80% 50%}.area-card-4 .area-photo img{position:absolute;bottom:0;height:150%;object-position:90% 50%}

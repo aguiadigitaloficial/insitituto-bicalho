@@ -41,7 +41,7 @@ const otherTeam = team.filter(person => !person.photo);
         <div class="partner-photos glass"><Photo name="partnersTogether" sizes={photoSizes.partnersTogether}/><div class="portrait-note"><img src="/assets/logo-transparent-600.webp" width="28" height="28" alt="" aria-hidden="true"/><span><Text text="Dr. Bruno Bicalho e Dra. Roberta Souza Carneiro, sócios do Instituto Bicalho."/></span></div></div>
       </div>
       <div id="equipe">
-        <details class="team-panel" id="equipe-completa"><summary><span>Conheça nossa equipe<small>Profissionais e áreas de atuação</small></span><span class="round-arrow"><Icon name="plus" size={22}/></span></summary><div class="team-panel-content"><Photo name="team" class="team-photo" sizes="(min-width: 1000px) 880px, 100vw"/><div class="team-grid team-portraits">{portraitTeam.map(person => <TeamPerson person={person}/>)}</div><div class="team-grid team-roster">{otherTeam.map(person => <TeamPerson person={person}/>)}</div></div></details>
+        <details class="team-panel" id="equipe-completa"><summary><span>Conheça nossa equipe<small>Profissionais e áreas de atuação</small></span><span class="round-arrow"><Icon name="plus" size={22}/></span></summary><div class="team-panel-content"><div class="team-grid team-portraits">{portraitTeam.map(person => <TeamPerson person={person}/>)}</div><div class="team-grid team-roster">{otherTeam.map(person => <TeamPerson person={person}/>)}</div></div></details>
       </div>
     </div>
   </section>
