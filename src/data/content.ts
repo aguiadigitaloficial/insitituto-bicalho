@@ -151,7 +151,7 @@ export const areas: Area[] = [
     ],
   },
 ];
-export type TeamMember = { name: string; role: string; kind: string; work: string; photo?: keyof typeof media; portraitOrder?: number; unit?: 'joao-monlevade' };
+export type TeamMember = { name: string; role: string; kind: string; work: string; photo?: keyof typeof media; portraitOrder?: number; unit?: 'joao-monlevade' | 'belo-horizonte' };
 export const team: TeamMember[] = [
   { name: 'Dr. Bruno Bicalho', role: 'Sócio-proprietário', kind: 'Especialidades', work: 'Implantodontia e Cirurgia Bucomaxilofacial.' },
   { name: 'Dra. Roberta Souza Carneiro', role: 'Sócia-proprietária', kind: 'Especialidades', work: 'Ortodontia e tratamento com alinhadores invisíveis.' },
@@ -162,7 +162,7 @@ export const team: TeamMember[] = [
   { name: 'Dra. Mariane Barros', role: '', kind: 'Áreas de atuação', work: 'Clínica Geral, Clareamento Dental, Prevenção e Saúde Bucal e Restaurações.' },
   { name: 'Dra. Thaís dos Anjos', role: '', kind: 'Especialidades', work: 'Periodontia, ATM e DTM e tratamento do Bruxismo.' },
   { name: 'Dr. Paulo', role: '', kind: 'Especialidade', work: 'Ortodontia.' },
-  { name: 'Dra. Ana Luiza Perdigão', role: '', kind: 'Especialidade', work: 'Odontopediatria.' },
+  { name: 'Dra. Ana Luiza Perdigão', role: 'Odontopediatra', kind: 'Especialidade', work: 'Odontopediatria.', photo: 'teamAnaLuiza', portraitOrder: 12, unit: 'belo-horizonte' },
   { name: 'Dra. Anne Sousa', role: '', kind: 'Especialidade', work: 'Endodontia, tratamento de canal.' },
   { name: 'Wanuza', role: 'Gerente', kind: '', work: '', photo: 'teamWanuza', portraitOrder: 1, unit: 'joao-monlevade' },
   { name: 'Irlam', role: 'Diretora Clínica e ASB', kind: '', work: '', photo: 'teamIrlam', portraitOrder: 3, unit: 'joao-monlevade' },
@@ -170,9 +170,12 @@ export const team: TeamMember[] = [
   { name: 'Bianca', role: 'CRC', kind: '', work: '', photo: 'teamBianca', portraitOrder: 5, unit: 'joao-monlevade' },
   { name: 'Eloiza', role: 'Auxiliar de saúde bucal', kind: '', work: '', photo: 'teamEloiza', portraitOrder: 6, unit: 'joao-monlevade' },
   { name: 'Matheus Souza', role: 'Protético', kind: '', work: '', photo: 'teamMatheus', portraitOrder: 7, unit: 'joao-monlevade' },
-  { name: 'Dra. Luísa Lima', role: 'Equipe de Belo Horizonte', kind: 'Áreas de atuação', work: 'Prótese Dentária, Clínica Geral e Harmonização Orofacial (HOF).' },
+  { name: 'Dra. Luísa Lima', role: 'Reabilitação oral', kind: 'Áreas de atuação', work: 'Prótese Dentária, Clínica Geral e Harmonização Orofacial (HOF).', photo: 'teamLuisa', portraitOrder: 11, unit: 'belo-horizonte' },
   { name: 'Dra. Stefany de Oliveira Lima', role: 'Equipe de Belo Horizonte', kind: 'Especialidade', work: 'Próteses Dentárias.' },
-  { name: 'Dra. Veridiana Salles', role: 'Equipe de Belo Horizonte', kind: 'Especialidade', work: 'Odontopediatria.' },
+  { name: 'Dra. Veridiana Salles', role: 'Odontopediatra', kind: 'Especialidade', work: 'Odontopediatria.', photo: 'teamVeridiana', portraitOrder: 9, unit: 'belo-horizonte' },
+  { name: 'Jessica', role: 'Recepção', kind: '', work: '', photo: 'teamJessica', portraitOrder: 8, unit: 'belo-horizonte' },
+  { name: 'Nicoly Santos', role: 'ABS', kind: '', work: '', photo: 'teamNicoly', portraitOrder: 10, unit: 'belo-horizonte' },
+  { name: 'Alice', role: 'Financeiro', kind: '', work: '', photo: 'teamAlice', portraitOrder: 13, unit: 'belo-horizonte' },
 ];
 export const homeQuestions: [string, string][] = [
   ['Como agendar uma avaliação?', 'Escolha João Monlevade ou Belo Horizonte e fale pelo WhatsApp da unidade. Nossa equipe orienta você, esclarece suas dúvidas e ajuda a agendar sua avaliação.'],

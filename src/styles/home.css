@@ -34,9 +34,14 @@
 .home-page .portrait-note img { flex: 0 0 28px; width: 28px; height: 28px; object-fit: cover; object-position: left center; }
 .home-page .portrait-note>span { min-width: 0; }
 .home-page .portrait-note .text-keep { display: inline-block; }
-.home-page .team-person { min-width: 0; }
+.home-page .team-person { min-width: 0; padding-block: 1rem; }
+.home-page .team-person-heading { display: flex; flex-wrap: wrap; align-items: flex-start; gap: .75rem; min-width: 0; }
+.home-page .team-person-identity { min-width: 0; flex: 1 1 7.5rem; }
+.home-page .team-person h3 { font-size: 1.125rem; line-height: 1.3; text-wrap: pretty; }
+.home-page .team-role { margin-top: .375rem; font-size: .875rem; line-height: 1.5; }
+.home-page .team-person p { margin-top: .75rem; font-size: 1rem; line-height: 1.6; }
 .home-page .team-portraits { align-items: start; }
-.home-page .team-portrait { width: 100%; aspect-ratio: 4 / 5; height: auto; border-radius: 16px; overflow: hidden; margin-bottom: 16px; }
+.home-page .team-portrait { flex: 0 0 5rem; width: 5rem; height: 6.25rem; border-radius: 1rem; overflow: hidden; margin: 0; }
 .home-page .team-portrait picture,.home-page .team-portrait img { width: 100%; height: 100%; }
 .home-page .team-portrait img { object-fit: cover; object-position: var(--photo-position); }
 .home-page .team-portraits .team-person { border-top: 0; }
@@ -48,6 +53,7 @@
   .home-page .hero-image-base,.home-page .portrait-note { padding: 16px; }
   .home-page .hero-actions .button { width: auto; }
   .home-page .partner-photos .photo { aspect-ratio: 4/3; }
+  .home-page .team-portrait { flex-basis: 6rem; width: 6rem; height: 7.5rem; }
 }
 @media(min-width:1024px) {
   .home-page .institution-layout { grid-template-columns: minmax(0,1.12fr) minmax(0,1fr); gap: 40px; }
