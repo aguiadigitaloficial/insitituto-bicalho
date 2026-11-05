@@ -25,7 +25,8 @@ const expected=[
  ['Alice','Financeiro','official-team-bh-alice','team-bh-20261105/alice.jpeg','belo-horizonte'],
 ]as const;
 const fixture=JSON.parse(await readFile('scripts/fixtures/team-preserved-copy.json','utf8'));
-const output='artifacts/team-bh-compact';await mkdir(output,{recursive:true});
+const output='artifacts/team-catalog';await mkdir(output,{recursive:true});
+const widths=[320,375,390,393,414,599,600,767,768,769,834,1023,1024,1199,1200,1201,1366,2560];
 const report:any={base,startedAt:new Date().toISOString(),assets:[],checks:[],errors:[]};
 assert.equal(team.length,23);assert.equal(new Set(team.map(p=>p.name)).size,23);
 for(const old of fixture.previousTeam){const current=team.find(p=>p.name===old.name)!;assert(current);assert.equal(current.kind,old.kind);assert.equal(current.work,old.work);if(!['Dra. Lívia Teixeira','Dra. Veridiana Salles','Dra. Luísa Lima','Dra. Ana Luiza Perdigão'].includes(old.name))assert.equal(current.role,old.role);}
@@ -37,6 +38,52 @@ async function preservedCopy(page:Page){
  await writeFile(output+'/copy-outside-actual.json',JSON.stringify(outside,null,2));
  assert.equal(outside.blocks.length,fixture.homeOutsideTeam.blocks);
  assert.equal(createHash('sha256').update(JSON.stringify(outside).replace(/© \d{4}/g,'© {year}')).digest('hex'),fixture.homeOutsideTeam.sha256,'Every Home word outside the approved team update must remain identical');
+}
+
+async function catalogLayout(page:Page,engine:string,width:number,scale:number){
+ const layout=await page.evaluate(()=>{
+  const grid=document.querySelector('.team-catalog')!,gridStyle=getComputedStyle(grid),rootSize=parseFloat(getComputedStyle(document.documentElement).fontSize);
+  const cards=[...grid.querySelectorAll('.team-person')].map(card=>{
+   const style=getComputedStyle(card),box=card.getBoundingClientRect().toJSON(),heading=card.querySelector('.team-person-heading')!,identity=card.querySelector('.team-person-identity')!,photo=card.querySelector('.team-portrait'),description=card.querySelector('p'),h3=card.querySelector('h3')!;
+   const content={left:box.left+parseFloat(style.borderLeftWidth)+parseFloat(style.paddingLeft),right:box.right-parseFloat(style.borderRightWidth)-parseFloat(style.paddingRight),top:box.top+parseFloat(style.borderTopWidth)+parseFloat(style.paddingTop),bottom:box.bottom-parseFloat(style.borderBottomWidth)-parseFloat(style.paddingBottom)};
+   const brokenWords:string[]=[];const walker=document.createTreeWalker(h3,NodeFilter.SHOW_TEXT);let node:Node|null;
+   while((node=walker.nextNode()))for(const word of node.textContent!.matchAll(/\S+/g)){const range=document.createRange();range.setStart(node,word.index!);range.setEnd(node,word.index!+word[0].length);const lines=new Set([...range.getClientRects()].filter(r=>r.width>0&&r.height>0).map(r=>Math.round(r.top)));if(lines.size>1)brokenWords.push(word[0]);}
+   return {name:h3.textContent,box,content,background:style.backgroundColor,borders:[style.borderTopWidth,style.borderRightWidth,style.borderBottomWidth,style.borderLeftWidth],radius:parseFloat(style.borderRadius),padding:parseFloat(style.paddingLeft),heading:heading.getBoundingClientRect().toJSON(),identity:identity.getBoundingClientRect().toJSON(),photo:photo?{...photo.getBoundingClientRect().toJSON(),radius:parseFloat(getComputedStyle(photo).borderRadius)}:null,description:description?{...description.getBoundingClientRect().toJSON(),border:parseFloat(getComputedStyle(description).borderTopWidth)}:null,children:[heading,identity,h3,...card.querySelectorAll('.team-role'),...(photo?[photo]:[]),...(description?[description]:[])].map(el=>el.getBoundingClientRect().toJSON()),brokenWords,fontSize:parseFloat(getComputedStyle(h3).fontSize)};
+  });
+  return {overflow:document.documentElement.scrollWidth>innerWidth+1,columns:gridStyle.gridTemplateColumns.split(' ').length,gridWidth:grid.getBoundingClientRect().width,gap:parseFloat(gridStyle.columnGap),rootSize,cards};
+ });
+ const label=`${engine}/${width}/${scale}`,tolerance=1.1;
+ assert(!layout.overflow,`${label}: horizontal overflow`);
+ const breakpointColumns=width>=1200?3:width>=768?2:1;
+ const fittingColumns=Math.max(1,Math.floor((layout.gridWidth+layout.gap+.1)/(20*layout.rootSize+layout.gap)));
+ assert.equal(layout.columns,Math.min(breakpointColumns,fittingColumns),`${label}: catalogue columns must fit the readable minimum`);
+ assert(Math.abs(layout.gap-layout.rootSize)<tolerance,`${label}: consistent catalogue gutter`);
+ for(const card of layout.cards){
+  const personLabel=`${label}/${card.name}`;
+  assert.equal(card.background,'rgb(255, 255, 255)',`${personLabel}: bounded white profile`);
+  assert(card.borders.every(border=>parseFloat(border)===1),`${personLabel}: profile border on all sides`);
+  assert(Math.abs(card.radius-layout.rootSize)<tolerance,`${personLabel}: profile radius`);
+  assert(Math.abs(card.padding-Math.min((width>=600?1:.75)*layout.rootSize,width*.0375))<tolerance,`${personLabel}: profile inset leaves room for enlarged names`);
+  assert(Math.abs(card.fontSize-1.125*layout.rootSize)<tolerance,`${personLabel}: readable name size`);
+  assert.deepEqual(card.brokenWords,[],`${personLabel}: names must not split inside a word`);
+  assert(card.children.every(child=>child.left>=card.content.left-tolerance&&child.right<=card.content.right+tolerance&&child.top>=card.content.top-tolerance&&child.bottom<=card.content.bottom+tolerance),`${personLabel}: all content contained by the profile padding`);
+  if(card.photo){
+   const targetWidth=(width>=600?6:5)*layout.rootSize,availableWidth=card.content.right-card.content.left;
+   assert(Math.abs(card.photo.width-Math.min(targetWidth,availableWidth))<tolerance,`${personLabel}: compact portrait fits its available space`);
+   assert(Math.abs(card.photo.width/card.photo.height-.8)<.005,`${personLabel}: portrait proportion preserved`);
+   assert(Math.abs(card.photo.radius-layout.rootSize)<tolerance,`${personLabel}: portrait radius`);
+   if(card.identity.left>=card.photo.right-tolerance)assert(Math.abs((card.identity.top+card.identity.bottom-card.photo.top-card.photo.bottom)/2)<tolerance,`${personLabel}: identity vertically aligned with photograph`);
+   else assert(card.identity.top>=card.photo.bottom-tolerance,`${personLabel}: reflow stacks identity below photograph without overlap`);
+  }
+  if(card.description){assert(card.description.border>=1,`${personLabel}: clinical details have a divider`);assert(card.description.top>=card.heading.bottom-tolerance,`${personLabel}: clinical details below the identity`);}
+ }
+ const rows=new Map<number,typeof layout.cards>();
+ for(const card of layout.cards){const row=[...rows.keys()].find(y=>Math.abs(y-card.box.top)<tolerance)??card.box.top;rows.set(row,[...(rows.get(row)||[]),card]);}
+ for(const row of rows.values()){
+  assert(row.every(card=>Math.abs(card.box.bottom-row[0].box.bottom)<tolerance),`${label}: equal profile boundaries within each row`);
+  for(let i=1;i<row.length;i++)assert(row[i].box.left>=row[i-1].box.right+layout.gap-tolerance,`${label}: profiles do not overlap`);
+ }
+ report.checks.push({engine,width,scale,columns:layout.columns,profiles:layout.cards.length,contained:true,unbrokenNames:true,alignedRows:true});
 }
 
 try{
@@ -58,16 +105,26 @@ try{
   page.on('pageerror',e=>report.errors.push(name+': '+e.message));
   try{
    await openTeam(page);await preservedCopy(page);await expect(page.locator('.team-person')).toHaveCount(23);await expect(page.locator('.team-portrait')).toHaveCount(13);await expect(page.locator('img[src*="official-team-meeting"]')).toHaveCount(0);
-   assert.deepEqual(await page.locator('.team-portraits h3').allTextContents(),expected.map(p=>p[0]));
+   await expect(page.locator('#equipe-completa .team-grid')).toHaveCount(1);
+   await expect(page.locator('.team-catalog>.team-person')).toHaveCount(23);
+   assert.deepEqual(await page.locator('.team-catalog h3').allTextContents(),[...expected.map(p=>p[0]),...team.filter(p=>!p.photo).map(p=>p.name)]);
+   for(const person of team){
+    const card=page.locator('.team-person').filter({has:page.getByRole('heading',{name:person.name,exact:true})});
+    await expect(card).toHaveCount(1);
+    if(person.role)await expect(card.locator('.team-role')).toHaveText(person.role);else await expect(card.locator('.team-role')).toHaveCount(0);
+    if(person.kind||person.work){
+     if(person.kind)await expect(card.locator('.team-kind')).toHaveText(person.kind);
+     assert.equal(await card.locator('p').evaluate(p=>{const copy=p.cloneNode(true)as HTMLElement;copy.querySelector('.team-kind')?.remove();return copy.textContent!.replace(/\s+/g,' ').trim();}),person.work);
+    }else await expect(card.locator('p')).toHaveCount(0);
+   }
    for(const [person,role,src,,unit]of expected){const card=page.locator('.team-person').filter({has:page.getByRole('heading',{name:person,exact:true})});await expect(card).toHaveCount(1);await expect(card.locator('.team-role')).toHaveText(role);await expect(card).toHaveAttribute('data-unit',unit);await expect(card.locator('img')).toHaveAttribute('src',new RegExp(src));await expect(card.locator('img')).toHaveAttribute('alt',new RegExp(person.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));}
    for(const old of fixture.previousTeam){const card=page.locator('.team-person').filter({has:page.getByRole('heading',{name:old.name,exact:true})});await expect(card).toHaveCount(1);await expect(card.locator('.team-kind')).toHaveText(old.kind);await expect(card.locator('p')).toContainText(old.work);if(old.role&&!['Dra. Luísa Lima','Dra. Veridiana Salles'].includes(old.name))await expect(card.locator('.team-role')).toHaveText(old.role);}
-   for(const width of [320,375,390,393,414,599,600,768,834,1023,1024,1199,1200,1366,2560])for(const scale of [100,200]){
+   for(const width of widths)for(const scale of [100,200]){
     await page.setViewportSize({width,height:width===1366?768:900});await page.evaluate(s=>document.documentElement.style.fontSize=s+'%',scale);await page.evaluate(()=>new Promise<void>(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r()))));
-    const layout=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth+1,columns:getComputedStyle(document.querySelector('.team-portraits')!).gridTemplateColumns.split(' ').length,portraits:[...document.querySelectorAll('.team-portrait')].map(p=>{const r=p.getBoundingClientRect();return {ratio:r.width/r.height,radius:getComputedStyle(p).borderRadius,width:r.width,height:r.height};})}));
-    assert(!layout.overflow,`${name}/${width}/${scale}: horizontal overflow`);assert.equal(layout.columns,width>=1200?3:width>=600?2:1);assert(layout.portraits.every(p=>Math.abs(p.ratio-.8)<.005&&p.radius===`${16*scale/100}px`&&Math.abs(p.width-(width>=600?96:80)*scale/100)<1&&Math.abs(p.height-(width>=600?120:100)*scale/100)<1));report.checks.push({engine:name,width,scale,columns:layout.columns});
+    await catalogLayout(page,name,width,scale);
    }
    await page.evaluate(()=>document.documentElement.style.fontSize='');
-   for(const width of [390,834,1366]){await page.setViewportSize({width,height:900});await photoLoad(page);await page.locator('.team-portraits').screenshot({path:`${output}/team-${width}-${name}.png`,animations:'disabled',style:'.site-header,.assistant-launcher,.skip-link,.mobile-cta,.cookie-notice{visibility:hidden!important}'});}
+   for(const width of [390,834,1366]){await page.setViewportSize({width,height:900});await photoLoad(page);await page.locator('#equipe-completa').screenshot({path:`${output}/team-${width}-${name}.png`,animations:'disabled',style:'.site-header,.assistant-launcher,.skip-link,.mobile-cta,.cookie-notice{visibility:hidden!important}'});}
    await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'no-preference'});await page.waitForFunction(()=>document.body.dataset.motion==='ready');await page.locator('#equipe-completa>summary').focus();await page.locator('#equipe-completa>summary').press('Enter');await expect(page.locator('#equipe-completa')).not.toHaveAttribute('open','');await page.locator('#equipe-completa>summary').press('Enter');await expect(page.locator('#equipe-completa')).toHaveAttribute('open','');await expect(page.locator('.team-person').last()).toBeVisible();await page.locator('#equipe-completa>summary').press('Enter');await expect(page.locator('#equipe-completa')).not.toHaveAttribute('open','');
    for(const dpr of [2,3])for(const width of [390,834,1366]){
     const high=await browser.newContext({viewport:{width,height:900},deviceScaleFactor:dpr,reducedMotion:'reduce'});const p=await high.newPage();await openTeam(p);await photoLoad(p);
@@ -76,7 +133,9 @@ try{
    }
    const nojs=await browser.newContext({viewport:{width:390,height:844},javaScriptEnabled:false});const p=await nojs.newPage();await p.goto(base+'/');await p.locator('#equipe-completa>summary').focus();await p.locator('#equipe-completa>summary').press('Enter');await expect(p.locator('#equipe-completa')).toHaveAttribute('open','');await photoLoad(p);
    for(const img of await p.locator('.team-portrait img').all()){const src=await img.getAttribute('src');assert(src&&!src.includes('-1200.'));assert.equal((await p.request.get(base+src)).status(),200);}
-   await nojs.close();console.log('PASS: '+name+' — photos/names, 30 reflow cases, 2x/3x, no-JavaScript fallback and team toggle.');
+   await expect(p.locator('.team-catalog>.team-person')).toHaveCount(23);
+   assert.deepEqual(await p.locator('.team-catalog h3').allTextContents(),[...expected.map(person=>person[0]),...team.filter(person=>!person.photo).map(person=>person.name)]);
+   await nojs.close();console.log('PASS: '+name+` — catalogue/photos/names, ${widths.length*2} reflow cases, 2x/3x, no-JavaScript fallback and team toggle.`);
   }finally{await context.close();await browser.close();}
  }
  assert.deepEqual(report.errors,[]);report.completedAt=new Date().toISOString();

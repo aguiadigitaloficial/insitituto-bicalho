@@ -6,7 +6,7 @@ import { photoSizes } from '../data/photos';
 interface Props { person: TeamMember }
 const { person } = Astro.props;
 ---
-<article class="team-person" data-unit={person.unit}>
+<article class:list={['team-person', { 'team-person-with-photo': Boolean(person.photo) }]} data-unit={person.unit}>
   <div class="team-person-heading">
     {person.photo && <Photo name={person.photo} class="team-portrait" sizes={photoSizes.teamPortrait}/>}
     <div class="team-person-identity">
@@ -14,5 +14,5 @@ const { person } = Astro.props;
       {person.role && <span class="team-role">{person.role}</span>}
     </div>
   </div>
-  {(person.kind || person.work) && <p>{person.kind && <span class="team-kind">{person.kind}</span>}<Text text={person.work}/></p>}
+  {(person.kind || person.work) && <p class="team-description">{person.kind && <span class="team-kind">{person.kind}</span>}<Text text={person.work}/></p>}
 </article>

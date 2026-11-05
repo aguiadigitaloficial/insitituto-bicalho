@@ -34,18 +34,39 @@
 .home-page .portrait-note img { flex: 0 0 28px; width: 28px; height: 28px; object-fit: cover; object-position: left center; }
 .home-page .portrait-note>span { min-width: 0; }
 .home-page .portrait-note .text-keep { display: inline-block; }
-.home-page .team-person { min-width: 0; padding-block: 1rem; }
-.home-page .team-person-heading { display: flex; flex-wrap: wrap; align-items: flex-start; gap: .75rem; min-width: 0; }
-.home-page .team-person-identity { min-width: 0; flex: 1 1 7.5rem; }
+.home-page .team-panel-content { padding: 0 min(1rem,4vw) 1rem; }
+.home-page .team-grid {
+  --team-columns: 1;
+  display: grid;
+  /* The breakpoint caps the columns; the rem minimum allows enlarged text to reflow. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(20rem, calc((100% - (var(--team-columns) - 1) * 1rem) / var(--team-columns)))), 1fr));
+  align-items: stretch;
+  gap: 1rem;
+}
+.home-page .team-person {
+  --team-portrait-width: 5rem;
+  container: team-person / inline-size;
+  min-width: 0;
+  padding: .75rem;
+  padding-inline: min(.75rem,3.75vw);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(16 47 67 / 4%);
+}
+.home-page .team-person-heading { display: grid; grid-template-columns: minmax(0,1fr); align-items: center; gap: .75rem; min-width: 0; }
+.home-page .team-person-with-photo .team-person-heading { grid-template-columns: minmax(0,var(--team-portrait-width)) minmax(0,1fr); }
+.home-page .team-person-identity { min-width: 0; }
 .home-page .team-person h3 { font-size: 1.125rem; line-height: 1.3; text-wrap: pretty; }
-.home-page .team-role { margin-top: .375rem; font-size: .875rem; line-height: 1.5; }
-.home-page .team-person p { margin-top: .75rem; font-size: 1rem; line-height: 1.6; }
-.home-page .team-portraits { align-items: start; }
-.home-page .team-portrait { flex: 0 0 5rem; width: 5rem; height: 6.25rem; border-radius: 1rem; overflow: hidden; margin: 0; }
+.home-page .team-role { display: block; margin-top: .375rem; color: var(--teal); font-weight: 600; font-size: .875rem; line-height: 1.5; }
+.home-page .team-description { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--line); font-size: 1rem; line-height: 1.6; }
+.home-page .team-kind { display: block; margin-bottom: .25rem; color: var(--muted); font-size: .875rem; line-height: 1.5; }
+.home-page .team-portrait { width: min(100%,var(--team-portrait-width)); aspect-ratio: 4/5; border-radius: 1rem; overflow: hidden; margin: 0; }
 .home-page .team-portrait picture,.home-page .team-portrait img { width: 100%; height: 100%; }
 .home-page .team-portrait img { object-fit: cover; object-position: var(--photo-position); }
-.home-page .team-portraits .team-person { border-top: 0; }
-.home-page .team-roster { margin-top: 16px; }
+@container team-person (max-width: 13.25rem) {
+  .home-page .team-person-with-photo .team-person-heading { grid-template-columns: minmax(0,1fr); }
+}
 .service-related { max-width: 100%; margin-top: 18px; }
 
 @media(min-width:600px) {
@@ -53,13 +74,21 @@
   .home-page .hero-image-base,.home-page .portrait-note { padding: 16px; }
   .home-page .hero-actions .button { width: auto; }
   .home-page .partner-photos .photo { aspect-ratio: 4/3; }
-  .home-page .team-portrait { flex-basis: 6rem; width: 6rem; height: 7.5rem; }
+  .home-page .team-panel-content { padding-inline: min(1.5rem,4vw); }
+  .home-page .team-person { --team-portrait-width: 6rem; padding: 1rem; padding-inline: min(1rem,3.75vw); }
+  @container team-person (max-width: 14.25rem) {
+    .home-page .team-person-with-photo .team-person-heading { grid-template-columns: minmax(0,1fr); }
+  }
+}
+@media(min-width:768px) {
+  .home-page .team-grid { --team-columns: 2; }
 }
 @media(min-width:1024px) {
   .home-page .institution-layout { grid-template-columns: minmax(0,1.12fr) minmax(0,1fr); gap: 40px; }
   .home-page .partner-photos { max-width: 560px; }
 }
 @media(min-width:1200px) {
+  .home-page .team-grid { --team-columns: 3; }
   .home-page .hero-layout { grid-template-columns: minmax(0,1.12fr) minmax(0,1fr); gap: 40px; }
   .home-page .hero-photo { height: 380px; }
 }

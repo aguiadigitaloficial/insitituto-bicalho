@@ -6,7 +6,7 @@
 
 .inner-hero-copy>p,.service p{max-width:65ch}
 
-.team-panel{margin-top:32px}.team-panel>summary{padding:20px}.team-person{padding-block:20px}
+.team-panel{margin-top:32px}.team-panel>summary{padding:20px}
 .area-card{min-height:390px;padding-top:64px}.area-card-copy{padding:18px}
 .area-grid .area-card-1{min-height:clamp(32.5rem,143vw,35rem)}.area-card-1 img{object-position:var(--photo-position)}.area-card-2 img,.area-card-3 img{object-position:var(--photo-position)}
 .area-card-3 .area-photo img{position:absolute;bottom:0;height:160%;object-position:80% 50%}.area-card-4 .area-photo img{position:absolute;bottom:0;height:150%;object-position:90% 50%}
@@ -44,9 +44,8 @@
   .area-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.area-card{min-height:420px}
   .footer-top{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px 32px}.footer-top>p{grid-column:1;grid-row:2}.footer-top nav[aria-label='Links do rodapé']{grid-column:2;grid-row:1/span 2;grid-template-columns:1fr}
 }
-@media(min-width:600px) and (max-width:767px){.flow-connection{left:21px;top:64px;bottom:-15px;width:2px;height:calc(100% - 48px)}.area-grid{grid-template-columns:1fr}.team-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:600px) and (max-width:767px){.flow-connection{left:21px;top:64px;bottom:-15px;width:2px;height:calc(100% - 48px)}.area-grid{grid-template-columns:1fr}}
 @media(min-width:768px){.units-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.unit-map{height:240px}.digital-flow{grid-template-columns:repeat(3,minmax(0,1fr))}.flow-connection{left:56px;top:22px;bottom:auto;width:calc(100% - 35px);height:2px}}
-@media(min-width:600px) and (max-width:1199px){.team-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:1023px){.inner-hero-layout,.precision-intro,.faq-layout,.service-layout{grid-template-columns:minmax(0,1fr)}.inner-hero-photo{height:340px}.service-index{position:static}}
 @media(min-width:1024px){
   .section{padding-block:80px}
