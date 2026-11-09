@@ -20,6 +20,12 @@ Em **Workers e Pages → insitituto-bicalho → Settings → Build**, usar:
 
 Os comandos usam `wrangler.production.jsonc` e `dist-cloudflare-production/server/wrangler.json` explicitamente. Não usar apenas `npx wrangler deploy`, pois o arquivo padrão pertence à prévia em outra conta. Não mesclar a branch em `main` durante esta preparação.
 
+### Iniciar a primeira build após configurar a branch
+
+Salvar os comandos e a branch não inicia uma build. Depois de cadastrar os quatro segredos de execução, enviar um novo commit de `codex/cloudflare-production` ao `origin` dispara a compilação e a implantação configuradas. No GitHub Desktop, conferir o repositório e a branch e clicar em **Push origin**.
+
+Acompanhar em **Implantações → Ver histórico de builds** e confirmar a branch e o commit recém-enviado. Não repetir a build antiga da `main` para tentar publicar o código da branch nova. O campo `name` continua sendo `insitituto-bicalho` na configuração de produção.
+
 O token gerado pelo Workers Builds deve conseguir consultar e atualizar este Worker nesta conta. O publicador valida conta, nome, branch, pacote, rotas dinâmicas e `noindex` antes de executar Wrangler. As chaves do banco não fazem parte do Git nem do ambiente de compilação.
 
 ## Antes do primeiro deploy do candidato
