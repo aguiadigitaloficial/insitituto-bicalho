@@ -27,7 +27,11 @@
     "test:blog:images": "node --import tsx scripts/blog-image-check.ts",
     "test:blog:worker": "node --import tsx scripts/blog-worker-check.ts",
     "test:blog:editor:live": "node --env-file=.env.blog.local --import tsx scripts/blog-editor-live-check.ts",
-    "deploy:cloudflare:preview": "node --env-file=.env.provision.local --env-file=.env.blog.local scripts/deploy-cloudflare-preview.mjs --deploy"
+    "deploy:cloudflare:preview": "node --env-file=.env.provision.local --env-file=.env.blog.local scripts/deploy-cloudflare-preview.mjs --deploy",
+    "build:cloudflare:production": "node scripts/cloudflare-production.mjs build",
+    "check:cloudflare:production": "node scripts/cloudflare-production.mjs check",
+    "deploy:cloudflare:production": "node scripts/cloudflare-production.mjs deploy",
+    "test:cloudflare:production": "node scripts/cloudflare-production-check.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.10",

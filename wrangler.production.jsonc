@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "insitituto-bicalho",
+  "account_id": "3799fcca9a44fc397332387e593b9cc5",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "compatibility_date": "2026-10-30",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "images": {"binding": "IMAGES"},
+  "vars": {
+    "BLOG_HOST": "cloudflare",
+    "BLOG_ENVIRONMENT": "production",
+    "BLOG_DEMO": "false",
+    "PUBLIC_INDEXABLE": "false",
+    "PUBLIC_SITE_URL": "https://institutobicalho.com"
+  },
+  "observability": {"enabled": true},
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/admin", "/admin/*", "/api/*", "/conteudos", "/conteudos/*", "/sitemap.xml"]
+  }
+}

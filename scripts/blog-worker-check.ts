@@ -9,7 +9,10 @@ import {request,chromium,webkit,expect} from '@playwright/test';
 import {exiftool} from 'exiftool-vendored';
 import {emptySnapshot, COPYRIGHT} from '../src/lib/blog/model';
 
-const dir='artifacts/blog-worker';await mkdir(dir,{recursive:true});
+const target=process.env.BLOG_WORKER_TARGET||'preview';assert(['preview','production'].includes(target),'BLOG_WORKER_TARGET must be preview or production');
+const production=target==='production';
+const workerConfig=production?'dist-cloudflare-production/server/wrangler.json':'dist-cloudflare/server/wrangler.json';
+const dir=production?'artifacts/blog-worker-production':'artifacts/blog-worker';await mkdir(dir,{recursive:true});
 const pg=new PGlite();
 await pg.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create schema storage;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);alter default privileges in schema public grant all on tables to anon,authenticated,service_role;grant usage on schema public,auth to anon,authenticated,service_role;`);
 for(const name of ['202610270001_blog.sql','202610270002_atomic_editorial.sql','202610300001_cloudflare_media.sql','202611030001_publication_revision_guard.sql'])await pg.exec((await readFile(`supabase/migrations/${name}`,'utf8')).replace('create extension if not exists pgcrypto;',''));
@@ -61,14 +64,21 @@ const fixtures=createServer(async(req,res)=>{
     return json(result);
   }catch(e:any){json({message:e.message,code:e.code||'P0001'},e.code==='42501'?403:400);}
 });await new Promise<void>(r=>fixtures.listen(54328,'127.0.0.1',r));
-const base='https://127.0.0.1:4327';let log='';const report:any={kind:'Built Cloudflare Worker with local service-protocol fixtures and real PostgreSQL/RLS; does not certify hosted Auth/SMTP/Cron/CPU quotas',checks:[],maxServiceCalls:0};
-const child=spawn(process.execPath,['node_modules/wrangler/bin/wrangler.js','dev','--config','dist-cloudflare/server/wrangler.json','--local','--local-protocol','https','--port','4327','--inspector-port','0','--var','SUPABASE_URL:http://127.0.0.1:54328','--var','SUPABASE_ANON_KEY:local-anon-key','--var','SUPABASE_SERVICE_ROLE_KEY:local-service-key','--var','BLOG_CRON_SECRET:local-cron-secret'],{env:{...process.env,WRANGLER_SEND_METRICS:'false'},stdio:['ignore','pipe','pipe']});child.stdout?.on('data',b=>log+=b);child.stderr?.on('data',b=>log+=b);
+const base='https://127.0.0.1:4327';let log='';const report:any={kind:'Built Cloudflare Worker with local service-protocol fixtures and real PostgreSQL/RLS; does not certify hosted Auth/SMTP/Cron/CPU quotas',target,workerConfig,checks:[],maxServiceCalls:0};
+const workerEnv:Record<string,string|undefined>={...process.env,WRANGLER_SEND_METRICS:'false'};
+if(production){
+  // Only the CLI fixture bindings below may provide service credentials.
+  for(const key of Object.keys(workerEnv))if(/^(?:SUPABASE_|BLOG_|BREVO_|SMTP_|PUBLIC_|BICALHO_WRANGLER_CONFIG$|CLOUDFLARE_(?:ENV|ACCOUNT_ID|API_TOKEN|API_KEY|EMAIL)$|WRANGLER_CI_OVERRIDE_NAME$)/.test(key))delete workerEnv[key];
+  Object.assign(workerEnv,{CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV:'false',CLOUDFLARE_INCLUDE_PROCESS_ENV:'false'});
+}
+const child=spawn(process.execPath,['node_modules/wrangler/bin/wrangler.js','dev','--config',workerConfig,'--local','--local-protocol','https','--port','4327','--inspector-port','0','--var','SUPABASE_URL:http://127.0.0.1:54328','--var','SUPABASE_ANON_KEY:local-anon-key','--var','SUPABASE_SERVICE_ROLE_KEY:local-service-key','--var','BLOG_CRON_SECRET:local-cron-secret'],{env:workerEnv,windowsHide:true,stdio:['ignore','pipe','pipe']});child.stdout?.on('data',b=>log+=b);child.stderr?.on('data',b=>log+=b);
 // Wrangler's local certificate is trusted only by these isolated API test clients.
 const owner=await request.newContext({baseURL:base,ignoreHTTPSErrors:true,extraHTTPHeaders:{Origin:base}}),editor=await request.newContext({baseURL:base,ignoreHTTPSErrors:true,extraHTTPHeaders:{Origin:base}}),visitor=await request.newContext({baseURL:base,ignoreHTTPSErrors:true});
-async function api(ctx:any,action:string,body?:unknown,status=200){const before=calls;const r=body===undefined?await ctx.get(`/api/blog/${action}/`):await ctx.post(`/api/blog/${action}/`,{data:body});const data=await r.json();assert.equal(r.status(),status,JSON.stringify({action,data}));if(status>=400){assert.equal(typeof data.error,'string');assert.equal(typeof data.code,'string');assert(Array.isArray(data.fields));assert.match(data.requestId,/^[a-f0-9-]{36}$/);assert.equal(r.headers()['x-request-id'],data.requestId);}const used=calls-before;report.maxServiceCalls=Math.max(report.maxServiceCalls,used);assert(used<40,`${action} exceeded external service request budget: ${used}`);return data;}
+function candidateNoindex(response:any,label:string){if(production)assert.match(response.headers()['x-robots-tag']||'',/\bnoindex\b/,`Production candidate SSR must remain noindex: ${label}`);}
+async function api(ctx:any,action:string,body?:unknown,status=200){const before=calls;const r=body===undefined?await ctx.get(`/api/blog/${action}/`):await ctx.post(`/api/blog/${action}/`,{data:body});const data=await r.json();assert.equal(r.status(),status,JSON.stringify({action,data}));candidateNoindex(r,`/api/blog/${action}/ (${status})`);if(status>=400){assert.equal(typeof data.error,'string');assert.equal(typeof data.code,'string');assert(Array.isArray(data.fields));assert.match(data.requestId,/^[a-f0-9-]{36}$/);assert.equal(r.headers()['x-request-id'],data.requestId);}const used=calls-before;report.maxServiceCalls=Math.max(report.maxServiceCalls,used);assert(used<40,`${action} exceeded external service request budget: ${used}`);return data;}
 try{
   let ready=false;for(let i=0;i<90;i++){if(child.exitCode!==null)break;try{if((await visitor.get('/admin/')).ok()){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,400));}assert(ready,log);
-  for(const path of ['/admin/?password=1','/conteudos/','/sitemap.xml']){const navigation=await visitor.get(path,{headers:{'Sec-Fetch-Mode':'navigate','Sec-Fetch-Dest':'document'}});assert.equal(navigation.status(),200,`Browser navigation must reach SSR: ${path}`);assert(!(await navigation.text()).includes('<title>Página não encontrada'));}report.checks.push('Browser navigation headers reach SSR for invitations, public blog and sitemap');
+  for(const path of ['/admin/?password=1','/conteudos/','/sitemap.xml']){const navigation=await visitor.get(path,{headers:{'Sec-Fetch-Mode':'navigate','Sec-Fetch-Dest':'document'}});assert.equal(navigation.status(),200,`Browser navigation must reach SSR: ${path}`);candidateNoindex(navigation,path);assert(!(await navigation.text()).includes('<title>Página não encontrada'));}report.checks.push('Browser navigation headers reach SSR for invitations, public blog and sitemap');
   await api(visitor,'list',undefined,401);
   for(const [ctx,a]of [[owner,accounts[0]],[editor,accounts[1]]]as const){await api(ctx,'login',{email:a.email,password:'local-editor-password'});assert.equal((await api(ctx,'session')).role,a.role);}
   await api(editor,'invite',{email:'not-sent@example.invalid',role:'owner'},403);const csrf=await owner.post('/api/blog/trash/',{headers:{Origin:'https://wrong.example'},data:{id:randomUUID()}});assert.equal(csrf.status(),403);report.checks.push('Login cookies, owner/editor authorization, anonymous denial and CSRF in the built Worker');
@@ -83,7 +93,7 @@ try{
   const tax=(await pg.query<any>('select * from blog_taxonomies')).rows,author=tax.find(t=>t.kind==='author'),category=tax.find(t=>t.kind==='category');
   const snapshot={...emptySnapshot(),title:'Demonstração do Worker',slug:'demonstracao-worker',authorId:author.id,categoryIds:[category.id],primaryCategoryId:category.id,coverId:asset.id,excerpt:'Texto neutro de verificação editorial.',content:{type:'doc',content:[{type:'paragraph',content:[{type:'text',text:'Demonstração do painel.'}]},{type:'image',attrs:{assetId:fullId}}]}};
   let saved=await api(editor,'save',{snapshot,version:0});await api(editor,'save',{id:saved.id,snapshot,version:0},409);
-  assert.equal((await visitor.get('/conteudos/previa/'+saved.id+'/',{maxRedirects:0})).status(),303);
+  const deniedPreview=await visitor.get('/conteudos/previa/'+saved.id+'/',{maxRedirects:0});assert.equal(deniedPreview.status(),303);candidateNoindex(deniedPreview,'anonymous private-preview redirect');
   const initialPublicObjects=[...objects.keys()].filter(k=>k.startsWith('blog-public/')).length;
   for(const altered of [{...snapshot,primaryCategoryId:'',categoryIds:[]},{...snapshot,categoryIds:[]},{...snapshot,extraJsonLd:'{"@type":'},{...snapshot,extraJsonLd:'{"@type":"BlogPosting"}'}]){
     const draft=await api(editor,'save',{snapshot:altered,version:0});
@@ -94,7 +104,7 @@ try{
     await api(editor,'publish',{id:draft.id,version:draft.version},422);await api(editor,'schedule',{id:draft.id,version:draft.version,at:new Date(Date.now()+180000).toISOString()},422);
     assert.equal((await pg.query<any>('select draft from blog_posts where id=$1',[draft.id])).rows[0].draft.extraJsonLd,altered.extraJsonLd);
     assert.equal([...objects.keys()].filter(k=>k.startsWith('blog-public/')).length,beforeObjects);
-    const preview=await editor.get('/conteudos/previa/'+draft.id+'/');assert.equal(preview.status(),200);const previewHTML=await preview.text();assert(previewHTML.includes('pendências para publicação'));if(altered.extraJsonLd)assert(previewHTML.includes('omitido desta prévia'));
+    const preview=await editor.get('/conteudos/previa/'+draft.id+'/');assert.equal(preview.status(),200);candidateNoindex(preview,'authenticated private preview');const previewHTML=await preview.text();assert(previewHTML.includes('pendências para publicação'));if(altered.extraJsonLd)assert(previewHTML.includes('omitido desta prévia'));
   }
   assert.equal([...objects.keys()].filter(k=>k.startsWith('blog-public/')).length,initialPublicObjects);
   const noCover=await api(editor,'save',{snapshot:{...snapshot,slug:'sem-capa-permitido',coverId:'',content:{type:'doc',content:[{type:'paragraph',content:[{type:'text',text:'Teste sem capa.'}]}]}},version:0});await api(editor,'publish',{id:noCover.id,version:noCover.version});
@@ -102,7 +112,23 @@ try{
   const missing=objects.get('blog-private/'+asset.variants[0].path)!;objects.delete('blog-private/'+asset.variants[0].path);const unavailable=await api(editor,'prepare-media',{id:saved.id,version:saved.version,assetId:asset.id},502);assert.equal(unavailable.code,'MEDIA_PREPARATION_FAILED');objects.set('blog-private/'+asset.variants[0].path,missing);assert.equal((await pg.query<any>('select public_ready_stamp from blog_media where id=$1',[asset.id])).rows[0].public_ready_stamp,null);
   report.checks.push('422 field errors before storage, incomplete JSON-LD drafts/private previews, duplicate type explanation, optional cover, safe 500/502 diagnostics and unchanged media readiness');
   await api(editor,'publish',{id:saved.id,version:saved.version},422);await api(editor,'prepare-media',{id:saved.id,version:saved.version,assetId:asset.id});await api(editor,'prepare-media',{id:saved.id,version:saved.version,assetId:fullId});await api(editor,'publish',{id:saved.id,version:saved.version});
-  const html=await (await visitor.get('/conteudos/demonstracao-worker/')).text();assert(html.includes(snapshot.title)&&html.includes('BlogPosting'));assert.match(html,/noindex/);
+  const publicArticle=await visitor.get('/conteudos/demonstracao-worker/');candidateNoindex(publicArticle,'published article');
+  const html=await publicArticle.text();assert(html.includes(snapshot.title)&&html.includes('BlogPosting'));assert.match(html,/noindex/);
+  if(production){
+    const samples:any[]=[];let firstHTML='';
+    for(let attempt=0;attempt<3;attempt++){
+      const before=calls;const response=await visitor.get('/conteudos/demonstracao-worker/?candidate-cache-check=1');
+      assert.equal(response.status(),200);candidateNoindex(response,`public cache attempt ${attempt+1}`);
+      assert.match(response.headers()['cache-control']||'',/public,.*s-maxage=30/);
+      const body=await response.text();if(attempt===0)firstHTML=body;else assert.equal(body,firstHTML,'Cached HTML must preserve the public article');
+      samples.push({attempt:attempt+1,serviceCalls:calls-before,robots:response.headers()['x-robots-tag'],cacheControl:response.headers()['cache-control']});
+    }
+    assert(samples[0].serviceCalls>0,'First request must render using the local service fixtures');
+    assert(samples.slice(1).every(sample=>sample.serviceCalls===0),'Repeated public requests should use the local Worker cache');
+    report.cache=samples;
+    const missingArticle=await visitor.get('/conteudos/worker-candidate-missing/');assert.equal(missingArticle.status(),404);candidateNoindex(missingArticle,'missing article');
+    report.checks.push('Production candidate noindex on SSR/API/private/error routes, plus repeated cached public HTML without database calls');
+  }
   const changed={...snapshot,title:'Título salvo somente como rascunho',slug:'demonstracao-worker-atualizada'};saved=await api(editor,'save',{id:saved.id,snapshot:changed,version:saved.version});assert.equal((await pg.query<any>('select snapshot from blog_publications where id=$1',[saved.id])).rows[0].snapshot.title,snapshot.title);
   await api(editor,'prepare-media',{id:saved.id,version:saved.version,assetId:asset.id});await api(editor,'publish',{id:saved.id,version:saved.version});
   const redirect=await owner.get('/conteudos/demonstracao-worker/',{maxRedirects:0});assert.equal(redirect.status(),301);assert.equal(redirect.headers().location,'/conteudos/demonstracao-worker-atualizada/');report.checks.push('Prepared media, immutable public version, revision conflict, explicit update and 301 redirect');
@@ -112,6 +138,7 @@ try{
   assert.equal((await visitor.post('/api/blog/cron/',{headers:{Authorization:'Bearer wrong'}})).status(),401);assert.equal((await visitor.post('/api/blog/cron/',{headers:{Authorization:'Bearer local-cron-secret'}})).status(),200);assert.equal((await pg.query<any>('select status from blog_schedules where post_id=$1',[scheduled.id])).rows[0].status,'published');report.checks.push('Unpublish, trash/restore, scheduling, authenticated Cron gateway and shared publisher');
   for(const [engineName,engine]of [['chromium',chromium],['webkit',webkit]]as const){
     const browser=await engine.launch(engineName==='chromium'?{channel:'chrome'}:{});const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:1366,height:768}});const page=await context.newPage();
+    if(production)await context.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
     try{
       const legacy=await api(editor,'save',{snapshot:{...snapshot,title:'Revisão responsiva '+engineName,slug:'revisao-'+engineName,categoryIds:[],extraJsonLd:'{"@type":'},version:0});
       await page.goto(base+'/admin/');await page.getByLabel('E-mail',{exact:true}).fill(accounts[1].email);await page.getByLabel('Senha',{exact:true}).fill('local-editor-password');await page.getByRole('button',{name:'Entrar',exact:true}).click();await page.locator(`[data-open="${legacy.id}"]`).click();
@@ -138,7 +165,7 @@ try{
     }finally{await context.close();await browser.close();}
   }
   const privateResult=await owner.get('/admin/');assert.match(privateResult.headers()['cache-control'],/no-store/);assert.match(privateResult.headers()['x-robots-tag'],/noindex/);
-  const old=await visitor.get('/saude-e-restauracao-dental-insituto-bicalho',{maxRedirects:0});assert.equal(old.status(),301);assert.match((await visitor.get('/')).headers()['x-robots-tag'],/noindex/);report.checks.push('Preview noindex headers, static legacy redirects and private panel no-store');
+  const old=await visitor.get('/saude-e-restauracao-dental-insituto-bicalho',{maxRedirects:0});assert.equal(old.status(),301);assert.match((await visitor.get('/')).headers()['x-robots-tag'],/noindex/);report.checks.push(`${production?'Production candidate':'Preview'} noindex headers, static legacy redirects and private panel no-store`);
   console.log(`PASS: ${report.checks.length} built Worker integration groups; maximum ${report.maxServiceCalls} external service calls per tested editorial action.`);
 }finally{
   child.kill();fixtures.close();await owner.dispose();await editor.dispose();await visitor.dispose();await pg.close();await exiftool.end();await writeFile(`${dir}/report.json`,JSON.stringify(report,null,2));await writeFile(`${dir}/server.log`,log);
