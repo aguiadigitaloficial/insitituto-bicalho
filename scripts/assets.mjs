@@ -22,8 +22,11 @@ const logo = fileURLToPath(new URL('logo-original.png', sources));
 // Only remove blank margins and resize; preserve the supplied artwork.
 await sharp(logo).trim({ threshold: 25 }).resize({ width: 600 }).png().toFile(fileURLToPath(new URL('logo.png', dir)));
 await sharp(logo).trim({ threshold: 25 }).resize({ width: 600 }).webp({quality:90}).toFile(fileURLToPath(new URL('logo.webp', dir)));
-await sharp(logo).extract({ left: 308, top: 485, width: 362, height: 365 }).resize(96,96,{fit:'contain',background:'#fff'}).png().toFile(fileURLToPath(new URL('favicon.png', dir)));
+// Keep the original site's rounded favicon artwork intact; PNG is a small fallback.
+await sharp(fileURLToPath(new URL('favicon-bicalho.svg', dir))).resize(50,50).png().toFile(fileURLToPath(new URL('favicon-bicalho-50.png', dir)));
 
 
 await sharp(fileURLToPath(new URL('logo.webp', dir))).resize({width:320}).webp({quality:88}).toFile(fileURLToPath(new URL('logo-320.webp', dir)));
-await sharp(fileURLToPath(new URL('favicon.png', dir))).resize(64,64).webp({quality:88}).toFile(fileURLToPath(new URL('brand-symbol.webp', dir)));
+// The in-page symbol is independent of the browser favicon.
+const brandSymbol = await sharp(logo).extract({ left: 308, top: 485, width: 362, height: 365 }).resize(96,96,{fit:'contain',background:'#fff'}).png().toBuffer();
+await sharp(brandSymbol).resize(64,64).webp({quality:88}).toFile(fileURLToPath(new URL('brand-symbol.webp', dir)));

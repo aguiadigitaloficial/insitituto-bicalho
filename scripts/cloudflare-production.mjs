@@ -12,12 +12,12 @@ const output = 'dist-cloudflare-production';
 const builtPath = `${output}/server/wrangler.json`;
 const stampPath = 'artifacts/provision/cloudflare-production-build.json';
 export const REQUIRED_SECRETS = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'BLOG_CRON_SECRET'];
-const expectedVars = {BLOG_HOST: 'cloudflare', BLOG_ENVIRONMENT: 'production', BLOG_DEMO: 'false', PUBLIC_INDEXABLE: 'false', PUBLIC_SITE_URL: 'https://institutobicalho.com'};
+const expectedVars = {BLOG_HOST: 'cloudflare', BLOG_ENVIRONMENT: 'production', BLOG_DEMO: 'false', PUBLIC_INDEXABLE: 'true', PUBLIC_SITE_URL: 'https://institutobicalho.com'};
 
 export function validateConfig(config) {
   assert.equal(config.account_id, TARGET.account, 'Conta diferente da conta do domínio.');
   assert.equal(config.name, TARGET.name, 'Use o Worker existente, sem criar outro projeto.');
-  assert.deepEqual(config.vars, expectedVars, 'O candidato exige produção sem demonstrações e com noindex.');
+  assert.deepEqual(config.vars, expectedVars, 'Produção exige domínio oficial indexável, sem demonstrações.');
   assert.equal(config.workers_dev, true);
   assert.equal(config.preview_urls, false);
   assert(!config.routes?.length && !config.route && !config.env && !config.dispatch_namespaces?.length, 'Este comando não conecta domínios nem altera rotas.');
@@ -126,9 +126,14 @@ export async function checkArtifact() {
   assert.equal(stamp.sourceDigest, await sourceDigest(), 'Arquivos mudaram: execute o build novamente.');
   assert.equal(stamp.artifactDigest, await digest(await filesUnder(output)), 'Pacote mudou após o build.');
   assert.equal(built.main, 'entry.mjs', 'Servidor Astro ausente.');
-  assert((await readFile(`${output}/client/_headers`, 'utf8')).includes('X-Robots-Tag: noindex, nofollow'));
+  const headers = await readFile(`${output}/client/_headers`, 'utf8');
+  assert(headers.includes('https://insitituto-bicalho.cbicalhogarcia.workers.dev/*\n  X-Robots-Tag: noindex, nofollow'), 'Host temporário sem bloqueio de indexação.');
+  assert(!headers.split(/\n(?=\S)/).find(rule => rule.startsWith('/*\n'))?.includes('X-Robots-Tag'), 'Bloqueio global não pode atingir o domínio oficial.');
+  assert(headers.includes('/404.html\n  X-Robots-Tag: noindex, nofollow'), 'Página 404 sem bloqueio.');
   const home = await readFile(`${output}/client/index.html`, 'utf8');
-  assert(/name="robots" content="noindex/.test(home), 'Página estática sem bloqueio de indexação.');
+  assert(/name="robots" content="index, follow"/.test(home), 'Página oficial não está indexável.');
+  const notFound = await readFile(`${output}/client/404.html`, 'utf8');
+  assert(/name="robots" content="noindex/.test(notFound), 'A página 404 deve continuar fora da indexação.');
   assert(home.includes('rel="canonical" href="https://institutobicalho.com/"'), 'Canonical diferente do domínio oficial.');
   assert(home.includes('href="/conteudos/"'), 'O pacote não contém o blog atual.');
   const manifest = await readFile(`${output}/server/manifest.json`, 'utf8').catch(() => '');
@@ -145,7 +150,7 @@ export async function checkArtifact() {
     const content = await readFile(path, 'utf8');
     assert(!secrets.some(secret => content.includes(secret)), `Credencial incorporada ao pacote: ${path}`);
   }
-  console.log('PASS: candidato SSR completo, conta/nome corretos, sem domínio conectado e com noindex.');
+  console.log('PASS: SSR completo, conta/nome corretos, domínio oficial indexável e host temporário protegido.');
 }
 
 async function main(command) {

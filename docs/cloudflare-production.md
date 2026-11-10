@@ -1,8 +1,10 @@
-# Candidato na conta do domínio
+# Produção na conta do domínio
+
+Em 2026-11-10, após a conexão e validação de `https://institutobicalho.com`, foi autorizada a indexação das páginas públicas no domínio oficial. A configuração agora usa `PUBLIC_INDEXABLE=true`, com proteção por hostname: o endereço `workers.dev` continua enviando `noindex`, tanto para arquivos estáticos quanto para respostas SSR. Painel, prévias privadas, busca, tags, demonstrações e 404 continuam bloqueados. A prévia na outra conta não é alterada.
 
 O Worker `insitituto-bicalho`, da conta `3799fcca9a44fc397332387e593b9cc5`, foi criado pelo responsável pelo domínio. Seu primeiro build (2026-11-09, versão `fe2815e5-8c3b-46cf-b7bb-e608081fc414`) usou a branch `main`, com o site estático antigo. Blog e painel retornaram 404. O domínio oficial ainda servia o site anterior na conferência HTTP.
 
-Esta configuração prepara a versão atual, incluindo SSR do blog, para o mesmo Worker. Não associa o domínio, não altera DNS e não habilita indexação. O Worker antigo de prévia e a configuração Vercel permanecem separados.
+Esta configuração publica a versão atual, incluindo SSR do blog, no mesmo Worker. O publicador não altera DNS nem associa domínios. O Worker antigo de prévia e a configuração Vercel permanecem separados. A descrição do primeiro build acima registra o estado anterior à migração.
 
 ## Configuração do Workers Builds
 
@@ -26,7 +28,7 @@ Salvar os comandos e a branch não inicia uma build. Depois de cadastrar os quat
 
 Acompanhar em **Implantações → Ver histórico de builds** e confirmar a branch e o commit recém-enviado. Não repetir a build antiga da `main` para tentar publicar o código da branch nova. O campo `name` continua sendo `insitituto-bicalho` na configuração de produção.
 
-O token gerado pelo Workers Builds deve conseguir consultar e atualizar este Worker nesta conta. O publicador valida conta, nome, branch, pacote, rotas dinâmicas e `noindex` antes de executar Wrangler. As chaves do banco não fazem parte do Git nem do ambiente isolado usado pelo Astro. Os segredos cadastrados em Compilações ficam disponíveis somente ao publicador para completar os vínculos de execução ausentes.
+O token gerado pelo Workers Builds deve conseguir consultar e atualizar este Worker nesta conta. O publicador valida conta, nome, branch, pacote, rotas dinâmicas, indexação oficial e bloqueio do host temporário antes de executar Wrangler. As chaves do banco não fazem parte do Git nem do ambiente isolado usado pelo Astro. Os segredos cadastrados em Compilações ficam disponíveis somente ao publicador para completar os vínculos de execução ausentes.
 
 ## Antes do primeiro deploy do candidato
 
@@ -56,6 +58,8 @@ Dois Workers com o mesmo Supabase compartilham os mesmos artigos, usuários e al
 5. Registrar versão/commit e plano de retorno. Manter a prévia bloqueada para indexação; não liberar demonstrações nem rascunhos.
 
 ## Verificação local
+
+`npm run test:seo:policy` verifica a separação de hosts e rotas privadas. `npm run test:sitemap` verifica inclusão e retirada de publicações usando fixtures, sem modificar o banco. Para a auditoria hospedada, executar `test:seo` com `TEST_URL=https://institutobicalho.com`; endereços temporários continuam esperando bloqueio de indexação.
 
 `npm run test:cloudflare:production` testa os bloqueios da configuração e a primeira implantação com valores fictícios, sem rede: preenchimento somente dos vínculos ausentes, preservação dos existentes, erros específicos, isolamento e limpeza do arquivo temporário em sucesso/falha.
 

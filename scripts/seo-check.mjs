@@ -6,6 +6,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { media, photoWidths, photoCopyright } from '../src/data/photos.ts';
 
 const base = process.env.TEST_URL || 'http://127.0.0.1:4321';
+const officialIndexable = process.env.TEST_INDEXABLE === 'true' || new URL(base).hostname === 'institutobicalho.com';
 const routes = ['/', '/tratamentos/', '/estetica/', '/ortodontia-e-cirurgia/', '/odontologia-de-precisao/', '/contato/', '/politica-de-privacidade/', '/termos-de-uso/', '/politica-de-cookies/', '/404.html'];
 const placeIds = ['ChIJU1SbPXMHpQARw7UoLTBid8k', 'ChIJRWZqfhmXpgARwWg7SmnBfFY'];
 const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome' });
@@ -13,7 +14,7 @@ const results = [], images = [];
 try {
   const page = await browser.newPage({ reducedMotion: 'reduce' });
   for (const route of routes) {
-    await page.goto(base + route, { waitUntil: 'domcontentloaded' });
+    const response = await page.goto(base + route, { waitUntil: 'domcontentloaded' });
     const data = await page.evaluate(() => {
       const meta = name => document.querySelector(`meta[name="${name}"],meta[property="${name}"]`)?.getAttribute('content');
       const schema = [...document.querySelectorAll('script[type="application/ld+json"]')].flatMap(script => {
@@ -35,7 +36,9 @@ try {
     assert.equal(data.h1, 1, route);
     assert(data.title && data.description, route);
     assert.equal(new URL(data.canonical).pathname, route === '/404.html' ? '/404/' : route);
-    assert.equal(data.robots, 'noindex, follow', 'Review previews must remain outside indexing');
+    const indexable = officialIndexable && route !== '/404.html';
+    assert.equal(data.robots, indexable ? 'index, follow' : 'noindex, follow', route);
+    if (indexable) assert(!/noindex|none/i.test(response.headers()['x-robots-tag'] || ''), `HTTP header blocks indexing: ${route}`);
     assert.equal(data.og.title, data.title);
     assert.equal(data.twitter.title, data.title);
     assert.equal(data.og.description, data.description);

@@ -7,7 +7,7 @@ for(const [k,v] of Object.entries(privateHeaders()))Astro.response.headers.set(k
 let authenticated=false;try{await requireEditor(Astro);authenticated=true;}catch{}
 const authError=Astro.url.searchParams.get('auth_error')==='expired';
 ---
-<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="robots" content="noindex, nofollow"/><title>Painel editorial | Instituto Bicalho</title><link rel="icon" href="/assets/favicon.png"/><link rel="preload" href={jakarta} as="font" type="font/woff2" crossorigin/></head><body>
+<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="robots" content="noindex, nofollow"/><title>Painel editorial | Instituto Bicalho</title><link rel="icon" type="image/png" sizes="50x50" href="/assets/favicon-bicalho-50.png"/><link rel="icon" type="image/svg+xml" sizes="any" href="/assets/favicon-bicalho.svg"/><link rel="preload" href={jakarta} as="font" type="font/woff2" crossorigin/></head><body>
 <a class="admin-skip" href="#admin-main">Pular para o conteúdo</a>
 <header class="admin-header"><a href="/admin/" aria-label="Painel editorial do Instituto Bicalho"><img src="/assets/logo-transparent-320.webp" width="156" height="45" alt="Instituto Bicalho"/></a><span>Painel editorial</span><a href="/conteudos/" target="_blank" rel="noopener">Ver Blog</a></header>
 <main id="admin-main" data-authenticated={authenticated?'true':'false'} data-configured={configured()?'true':'false'}>

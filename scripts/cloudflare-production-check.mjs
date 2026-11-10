@@ -37,7 +37,7 @@ rejectsConfig('missing worker name', config => {delete config.name;});
 rejectsConfig('preview worker', config => {config.name = 'instituto-bicalho-blog-preview';});
 rejectsConfig('a new similarly named worker', config => {config.name = 'instituto-bicalho';});
 rejectsConfig('missing vars', config => {delete config.vars;});
-for (const [key, value] of Object.entries({BLOG_HOST: 'vercel', BLOG_ENVIRONMENT: 'preview', BLOG_DEMO: 'true', PUBLIC_INDEXABLE: 'true', PUBLIC_SITE_URL: 'https://example.invalid'})) {
+for (const [key, value] of Object.entries({BLOG_HOST: 'vercel', BLOG_ENVIRONMENT: 'preview', BLOG_DEMO: 'true', PUBLIC_INDEXABLE: 'false', PUBLIC_SITE_URL: 'https://example.invalid'})) {
   rejectsConfig(`invalid ${key}`, config => {config.vars[key] = value;});
   rejectsConfig(`missing ${key}`, config => {delete config.vars[key];});
 }
@@ -74,7 +74,7 @@ const inherited = {
   ...appSecrets,
   PATH: '/safe/test/path', TEMP: '/safe/test/tmp', CI: 'true',
   BLOG_HOST: 'vercel', BLOG_ENVIRONMENT: 'preview', BLOG_DEMO: 'true',
-  PUBLIC_INDEXABLE: 'true', PUBLIC_SITE_URL: 'https://wrong.invalid', PUBLIC_GA_ID: 'G-TEST12345',
+  PUBLIC_INDEXABLE: 'false', PUBLIC_SITE_URL: 'https://wrong.invalid', PUBLIC_GA_ID: 'G-TEST12345',
   BICALHO_WRANGLER_CONFIG: './wrong.jsonc', CLOUDFLARE_ENV: 'wrong-environment',
   WRANGLER_CI_OVERRIDE_NAME: 'another-worker',
   CLOUDFLARE_API_TOKEN: 'FAKE_TEST_CLOUDFLARE_TOKEN', CLOUDFLARE_API_KEY: 'FAKE_TEST_GLOBAL_KEY',

@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFile,writeFile,mkdir } from 'node:fs/promises';
 const baseline=JSON.parse(await readFile(new URL('./fixtures/approved-copy.json',import.meta.url),'utf8'));
 const base=process.env.TEST_URL||'http://127.0.0.1:4321';
+const officialIndexable=process.env.TEST_INDEXABLE==='true'||new URL(base).hostname==='institutobicalho.com';
 const browser=await chromium.launch({channel:process.env.PLAYWRIGHT_CHANNEL||'chrome'});
 const after=[];
 try {
@@ -12,7 +13,10 @@ try {
     await page.goto(base+expected.route,{waitUntil:'domcontentloaded'});
     for(const selector of ['.desktop-nav','.mobile-nav','.footer-top nav[aria-label="Links do rodapé"]'])assert.equal(await page.locator(`${selector} a[href="/conteudos/"]`).count(),1,`${expected.route}: exactly one Blog link in ${selector}`);
     const row=await page.evaluate(route=>({route,title:document.title,description:document.querySelector('meta[name="description"]').content,canonical:document.querySelector('link[rel="canonical"]').href,robots:document.querySelector('meta[name="robots"]').content,blocks:[...document.querySelectorAll('h1,h2,h3,.team-name,.team-subgroup-title,p,a,button,address,summary,.eyebrow,.portrait-note')].filter(el=>!el.closest('[data-service-contact]')&&!(el.matches('a[href="/conteudos/"]')&&el.textContent.trim()==='Blog'&&el.closest('.site-header,.site-footer'))).map(el=>({tag:el.tagName,text:el.textContent.replace(/\s+/g,' ').trim()}))}),expected.route);
-    const sha256=createHash('sha256').update(JSON.stringify(row).replace(/© \d{4}/g,'© {year}')).digest('hex');
+    assert.equal(row.robots,officialIndexable&&expected.route!=='/404.html'?'index, follow':'noindex, follow',`${expected.route}: indexing policy`);
+    // The approved copy fixture predates launch. Normalize only this explicitly
+    // authorized metadata change; every word and every other field still match.
+    const sha256=createHash('sha256').update(JSON.stringify({...row,robots:'noindex, follow'}).replace(/© \d{4}/g,'© {year}')).digest('hex');
     after.push({...row,sha256});
     assert.equal(row.blocks.length,expected.blocks,`${expected.route}: copy blocks changed`);
     assert.equal(sha256,expected.sha256,`${expected.route}: approved words or page metadata changed`);

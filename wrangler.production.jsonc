@@ -12,7 +12,7 @@
     "BLOG_HOST": "cloudflare",
     "BLOG_ENVIRONMENT": "production",
     "BLOG_DEMO": "false",
-    "PUBLIC_INDEXABLE": "false",
+    "PUBLIC_INDEXABLE": "true",
     "PUBLIC_SITE_URL": "https://institutobicalho.com"
   },
   "observability": {"enabled": true},

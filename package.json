@@ -15,6 +15,8 @@
     "test:all": "npm test && npm run test:flows && npm run test:cta && npm run test:mobile && npm run test:responsive && npm run test:seo && npm run test:photos && npm run test:typography && npm run test:copy",
     "test:photos": "node scripts/photo-quality-check.mjs",
     "test:seo": "node scripts/seo-check.mjs",
+    "test:seo:policy": "node --import tsx scripts/indexing-check.ts",
+    "test:sitemap": "node --import tsx scripts/sitemap-check.ts",
     "test:responsive": "node scripts/responsive-check.mjs",
     "test:typography": "node scripts/typography-check.mjs",
     "test:copy": "node scripts/copy-check.mjs",

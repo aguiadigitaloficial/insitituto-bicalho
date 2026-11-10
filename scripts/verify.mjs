@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const base = process.env.TEST_URL || 'http://127.0.0.1:4321';
+const officialIndexable = process.env.TEST_INDEXABLE === 'true' || new URL(base).hostname === 'institutobicalho.com';
 await mkdir('artifacts', { recursive: true });
 const browser = await chromium.launch({ channel:process.env.PLAYWRIGHT_CHANNEL || 'chrome', headless: true });
 const context = await browser.newContext({ viewport: { width:390, height:844 }, deviceScaleFactor:1 });
@@ -19,7 +20,8 @@ for (const route of routes) {
   await page.evaluate(() => Promise.all(document.getAnimations().map(a => a.finished.catch(() => {}))));
   assert.equal(await page.locator('h1').count(),1,route);
   const title = await page.title(); assert(!titles.has(title)); titles.add(title);
-  assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), 'noindex, follow');
+  assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), officialIndexable ? 'index, follow' : 'noindex, follow');
+  if (officialIndexable) assert(!/noindex|none/i.test(response.headers()['x-robots-tag'] || ''), route);
   assert.equal(await page.locator('a[href*="agenda.link"], [data-online-booking]').count(),0,route);
   assert(!/agendar online|agenda online|agenda\.link/i.test(await page.locator('body').innerText()),route);
   const broken = await page.locator('img').evaluateAll(imgs => imgs.filter(i=>i.complete && !i.naturalWidth).map(i=>i.src)); assert.deepEqual(broken, [], route);
