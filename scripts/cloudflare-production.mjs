@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {spawn, execFileSync} from 'node:child_process';
-import {readFile, readdir, mkdir, writeFile} from 'node:fs/promises';
+import {readFile, readdir, mkdir, writeFile, mkdtemp, chmod, unlink, rmdir} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
+import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {parseEnv} from 'node:util';
 
@@ -41,6 +42,57 @@ export function validateDeploymentEnvironment(env, branch) {
   if (env.WRANGLER_CI_OVERRIDE_NAME) assert.equal(env.WRANGLER_CI_OVERRIDE_NAME, TARGET.name, 'O painel está conectado a outro Worker.');
   if (env.CLOUDFLARE_ACCOUNT_ID) assert.equal(env.CLOUDFLARE_ACCOUNT_ID, TARGET.account, 'Credencial de outra conta.');
   assert(env.CLOUDFLARE_API_TOKEN, 'Configure a credencial do Workers Builds; login global não é utilizado.');
+}
+
+async function readRuntimeSecretNames(env) {
+  // Settings expose binding names/types, never secret values. A failed lookup
+  // must not be mistaken for an empty Worker and trigger an overwrite.
+  const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${TARGET.account}/workers/scripts/${TARGET.name}/settings`, {
+    headers: {Authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}`}, signal: AbortSignal.timeout(20000),
+  });
+  const data = await response.json();
+  assert(response.ok && data.success && Array.isArray(data.result?.bindings), 'Não foi possível confirmar os segredos do Worker existente com a credencial do build.');
+  return new Set(data.result.bindings.filter(binding => binding.type === 'secret_text').map(binding => binding.name));
+}
+
+export async function deployWithRuntimeSecrets({env, branch, readSecretNames = () => readRuntimeSecretNames(env), upload = ({args, env: childEnv}) => run('node_modules/wrangler/bin/wrangler.js', args, childEnv)}) {
+  validateDeploymentEnvironment(env, branch);
+  const existing = await readSecretNames();
+  const missing = REQUIRED_SECRETS.filter(name => !existing.has(name));
+  const unavailable = missing.filter(name => typeof env[name] !== 'string' || !env[name].trim());
+  assert.equal(unavailable.length, 0, `Faltam segredos em Compilações para a primeira implantação: ${unavailable.join(', ')}. Cadastre esses nomes como Secret e execute a build novamente.`);
+
+  // Only absent runtime bindings are bootstrapped. Existing secrets remain in
+  // Cloudflare even if an old/different value is still present in Build Secrets.
+  const childEnv = {
+    ...isolatedEnv(env), CLOUDFLARE_ACCOUNT_ID: TARGET.account, CLOUDFLARE_API_TOKEN: env.CLOUDFLARE_API_TOKEN,
+    CLOUDFLARE_API_BASE_URL: 'https://api.cloudflare.com/client/v4',
+    WRANGLER_LOG: 'info', WRANGLER_LOG_SANITIZE: 'true', WRANGLER_WRITE_LOGS: 'false',
+  };
+  const args = ['deploy', '--config', resolve(builtPath)];
+  let directory;
+  let secretPath;
+  try {
+    if (missing.length) {
+      directory = await mkdtemp(join(tmpdir(), 'bicalho-worker-secrets-'));
+      await chmod(directory, 0o700);
+      secretPath = join(directory, 'secrets.json');
+      // JSON keeps literal $, quotes and line breaks intact. Never use dotenv
+      // interpolation, persist an upload form, or place this file in the repo.
+      await writeFile(secretPath, JSON.stringify(Object.fromEntries(missing.map(name => [name, env[name]]))), {mode: 0o600, flag: 'wx'});
+      args.push('--secrets-file', secretPath);
+    }
+    await upload({args, env: childEnv});
+    const published = await readSecretNames();
+    const stillMissing = REQUIRED_SECRETS.filter(name => !published.has(name));
+    assert.equal(stillMissing.length, 0, `A implantação terminou, mas a conferência não encontrou os segredos de execução: ${stillMissing.join(', ')}.`);
+    return {bootstrapped: missing, verified: [...REQUIRED_SECRETS]};
+  } finally {
+    // No recursive deletion: remove only the exact temporary file/directory
+    // created by this invocation, on success or any deployment/check failure.
+    try {if (secretPath) await unlink(secretPath).catch(error => {if (error.code !== 'ENOENT') throw error;});}
+    finally {if (directory) await rmdir(directory);}
+  }
 }
 
 async function filesUnder(dir) {
@@ -88,7 +140,7 @@ export async function checkArtifact() {
   for (const name of (await readdir('.')).filter(name => /^\.env(?:\.|$)/.test(name))) {
     privateEnvs.push(parseEnv(await readFile(name, 'utf8')));
   }
-  const secrets = privateEnvs.flatMap(env => Object.entries(env).filter(([key, value]) => /TOKEN|SECRET|SERVICE_ROLE|PASSWORD|API_KEY/.test(key) && typeof value === 'string' && value.length > 16).map(([, value]) => value));
+  const secrets = privateEnvs.flatMap(env => Object.entries(env).filter(([key, value]) => (REQUIRED_SECRETS.includes(key) || /TOKEN|SECRET|SERVICE_ROLE|PASSWORD|API_KEY/.test(key)) && typeof value === 'string' && value.length > 16).map(([, value]) => value));
   for (const path of (await filesUnder(output)).filter(path => /\.(?:m?js|cjs|json|html|css|map)$/.test(path))) {
     const content = await readFile(path, 'utf8');
     assert(!secrets.some(secret => content.includes(secret)), `Credencial incorporada ao pacote: ${path}`);
@@ -115,15 +167,8 @@ async function main(command) {
   await checkArtifact();
   if (command !== 'deploy') return;
   const branch = execFileSync('git', ['branch', '--show-current'], {encoding: 'utf8'}).trim() || process.env.WORKERS_CI_BRANCH;
-  validateDeploymentEnvironment(process.env, branch);
-  // Check existence and secret names only; never print or download secret values.
-  const result = await fetch(`https://api.cloudflare.com/client/v4/accounts/${TARGET.account}/workers/scripts/${TARGET.name}/settings`, {headers: {Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`}, signal: AbortSignal.timeout(20000)});
-  const data = await result.json();
-  assert(result.ok && data.success, 'Não foi possível confirmar o Worker existente com a credencial do build.');
-  const secretNames = new Set((data.result?.bindings || []).filter(b => b.type === 'secret_text').map(b => b.name));
-  const missing = REQUIRED_SECRETS.filter(name => !secretNames.has(name));
-  assert.equal(missing.length, 0, `Cadastre primeiro os segredos de execução no Worker: ${missing.join(', ')}.`);
-  await run('node_modules/wrangler/bin/wrangler.js', ['deploy', '--config', resolve(builtPath)], {...isolatedEnv(), CLOUDFLARE_ACCOUNT_ID: TARGET.account, CLOUDFLARE_API_TOKEN: process.env.CLOUDFLARE_API_TOKEN});
+  const result = await deployWithRuntimeSecrets({env: process.env, branch});
+  console.log(`PASS: servidor publicado e ${result.verified.length} segredos de execução confirmados; ${result.bootstrapped.length} vínculos ausentes criados junto do código.`);
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   main(process.argv[2]).catch(error => {console.error(error.message); process.exitCode = 1;});

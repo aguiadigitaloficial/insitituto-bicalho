@@ -22,22 +22,28 @@ Os comandos usam `wrangler.production.jsonc` e `dist-cloudflare-production/serve
 
 ### Iniciar a primeira build após configurar a branch
 
-Salvar os comandos e a branch não inicia uma build. Depois de cadastrar os quatro segredos de execução, enviar um novo commit de `codex/cloudflare-production` ao `origin` dispara a compilação e a implantação configuradas. No GitHub Desktop, conferir o repositório e a branch e clicar em **Push origin**.
+Salvar os comandos e a branch não inicia uma build. Depois de cadastrar os quatro segredos em **Compilações**, enviar um novo commit de `codex/cloudflare-production` ao `origin` dispara a compilação e a implantação configuradas. No GitHub Desktop, conferir o repositório e a branch e clicar em **Push origin**.
 
 Acompanhar em **Implantações → Ver histórico de builds** e confirmar a branch e o commit recém-enviado. Não repetir a build antiga da `main` para tentar publicar o código da branch nova. O campo `name` continua sendo `insitituto-bicalho` na configuração de produção.
 
-O token gerado pelo Workers Builds deve conseguir consultar e atualizar este Worker nesta conta. O publicador valida conta, nome, branch, pacote, rotas dinâmicas e `noindex` antes de executar Wrangler. As chaves do banco não fazem parte do Git nem do ambiente de compilação.
+O token gerado pelo Workers Builds deve conseguir consultar e atualizar este Worker nesta conta. O publicador valida conta, nome, branch, pacote, rotas dinâmicas e `noindex` antes de executar Wrangler. As chaves do banco não fazem parte do Git nem do ambiente isolado usado pelo Astro. Os segredos cadastrados em Compilações ficam disponíveis somente ao publicador para completar os vínculos de execução ausentes.
 
 ## Antes do primeiro deploy do candidato
 
-Em **Settings → Variables & Secrets**, cadastrar como segredos de execução:
+O Worker antigo contém apenas arquivos estáticos; nesse estado, o painel bloqueia o cadastro de segredos de execução. Para a primeira publicação, usar os quatro valores cadastrados como **Secret** em **Configurações → Compilações → Variáveis e segredos**:
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `BLOG_CRON_SECRET`
 
-Usar o projeto Supabase confirmado para a publicação definitiva. A chave de serviço é privada; não colocar em variável `PUBLIC_`, no chat ou no repositório. O guard consulta apenas os nomes dos segredos e bloqueia o deploy se faltar algum. Essa verificação não prova que os valores estão corretos: login, publicação, imagens e agendamento ainda precisam de testes reais.
+Usar o projeto Supabase confirmado para a publicação definitiva. A chave de serviço é privada; não colocar em variável `PUBLIC_`, no chat ou no repositório.
+
+O publicador consulta somente os nomes dos segredos de execução. Para cada nome ausente, exige o valor correspondente de Compilações e o envia junto com o servidor SSR usando [`wrangler deploy --secrets-file`](https://developers.cloudflare.com/workers/configuration/secrets/#upload-secrets-alongside-code). Valores já existentes no Worker não são substituídos, mesmo que Compilações contenha valores diferentes. Se faltar algum valor necessário, a implantação para antes do upload e informa apenas os nomes pendentes.
+
+O arquivo JSON temporário fica fora do checkout e dos artefatos, com diretório `0700` e arquivo `0600` no ambiente Linux do Workers Builds. É removido ao terminar, inclusive em falhas; valores não são impressos. O processo força a sanitização dos logs, desativa o arquivo de debug do Wrangler e não gera formulários de upload para diagnóstico. Após publicar, consulta novamente os nomes dos quatro vínculos. A confirmação dos nomes não prova a validade dos valores: conferir o blog público e a API de sessão, além dos fluxos autenticados e de agendamento.
+
+Nas próximas implantações, se os quatro segredos de execução já existirem, nenhum arquivo de segredos será criado; o Wrangler preservará os valores existentes.
 
 Dois Workers com o mesmo Supabase compartilham os mesmos artigos, usuários e alterações. Antes de habilitar edição no candidato, definir a promoção do banco atual ou a migração para outro projeto, com cópia de segurança. Não criar um segundo agendador apontando para o mesmo banco. Rever Supabase Auth Site URL, URLs de retorno para convites/recuperação e o destino do Cron; SMTP deve continuar pertencendo ao Instituto.
 
@@ -51,7 +57,7 @@ Dois Workers com o mesmo Supabase compartilham os mesmos artigos, usuários e al
 
 ## Verificação local
 
-`npm run test:cloudflare:production` testa os bloqueios da configuração.
+`npm run test:cloudflare:production` testa os bloqueios da configuração e a primeira implantação com valores fictícios, sem rede: preenchimento somente dos vínculos ausentes, preservação dos existentes, erros específicos, isolamento e limpeza do arquivo temporário em sucesso/falha.
 
 `npm run build:cloudflare:production` executa Astro Check, compila, compara a fonte antes/depois e grava a impressão digital do pacote em `artifacts/provision/cloudflare-production-build.json`.
 

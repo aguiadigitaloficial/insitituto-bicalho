@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import {TARGET, REQUIRED_SECRETS, validateConfig, isolatedEnv, validateDeploymentEnvironment} from './cloudflare-production.mjs';
+import {readFile, stat} from 'node:fs/promises';
+import {dirname, isAbsolute, relative, resolve} from 'node:path';
+import {TARGET, REQUIRED_SECRETS, validateConfig, isolatedEnv, validateDeploymentEnvironment, deployWithRuntimeSecrets} from './cloudflare-production.mjs';
 
 // Pure guard checks only: no build, network, credentials, database or deployment.
 const failures = [];
 let passed = 0;
 function check(name, run) {
   try {run(); passed++;} catch (error) {failures.push({name, message: error.message});}
+}
+async function checkAsync(name, run) {
+  try {await run(); passed++;} catch (error) {failures.push({name, message: error.message});}
 }
 const source = JSON.parse(await readFile(new URL('../wrangler.production.jsonc', import.meta.url), 'utf8'));
 const clone = () => structuredClone(source);
@@ -113,6 +117,192 @@ check('deployment environment: rejects missing token instead of global login fal
   assert.throws(() => validateDeploymentEnvironment(env, TARGET.branch), assert.AssertionError);
 });
 
+// Exercise the deployment boundary with fake values and injected callbacks only.
+// No fetch, Wrangler subprocess or real credentials are used by these checks.
+const fakeSecrets = Object.fromEntries(REQUIRED_SECRETS.map((key, index) => [key, `FAKE_${index}_literal_$VALUE_"quote"_\\slash\nline`]));
+const fakeEnv = {...deployment, ...fakeSecrets, BREVO_API_KEY: 'FAKE_UNRELATED_KEY', WRANGLER_LOG: 'debug', WRANGLER_LOG_SANITIZE: 'false', WRANGLER_WRITE_LOGS: 'true', CLOUDFLARE_API_BASE_URL: 'https://wrong.invalid', CF_API_BASE_URL: 'https://wrong-alias.invalid'};
+function secretPath(args) {
+  const index = args.indexOf('--secrets-file');
+  return index === -1 ? undefined : args[index + 1];
+}
+async function assertRemoved(path) {
+  assert(path, 'The upload callback must observe a temporary file.');
+  await assert.rejects(stat(path), error => error.code === 'ENOENT');
+  await assert.rejects(stat(dirname(path)), error => error.code === 'ENOENT');
+}
+
+await checkAsync('bootstrap: uploads code and all missing secrets together, then removes the protected temporary file', async () => {
+  const parentBefore = structuredClone(fakeEnv);
+  const events = [];
+  let path;
+  await deployWithRuntimeSecrets({
+    env: fakeEnv, branch: TARGET.branch,
+    readSecretNames: async () => {
+      events.push('read');
+      return events.length === 1 ? new Set() : new Set(REQUIRED_SECRETS);
+    },
+    upload: async ({args, env}) => {
+      events.push('upload');
+      assert.deepEqual(args.slice(0, 3), ['deploy', '--config', resolve('dist-cloudflare-production/server/wrangler.json')]);
+      path = secretPath(args);
+      assert(isAbsolute(path));
+      const fromCheckout = relative(process.cwd(), path);
+      assert(fromCheckout.startsWith('..') || isAbsolute(fromCheckout), 'Temporary secrets must stay outside the checkout and build output.');
+      assert.deepEqual(JSON.parse(await readFile(path, 'utf8')), fakeSecrets, 'JSON must preserve literal dollars, quotes, backslashes and newlines.');
+      if (process.platform !== 'win32') {
+        assert.equal((await stat(path)).mode & 0o777, 0o600);
+        assert.equal((await stat(dirname(path))).mode & 0o777, 0o700);
+      }
+      for (const name of [...REQUIRED_SECRETS, 'BREVO_API_KEY']) assert(!Object.hasOwn(env, name), `${name} must not enter the Wrangler process environment.`);
+      assert.equal(env.CLOUDFLARE_ACCOUNT_ID, TARGET.account);
+      assert.equal(env.CLOUDFLARE_API_TOKEN, fakeEnv.CLOUDFLARE_API_TOKEN);
+      assert.equal(env.CLOUDFLARE_API_BASE_URL, 'https://api.cloudflare.com/client/v4');
+      assert.equal(env.WRANGLER_LOG, 'info', 'Inherited debug logging must not expose the upload payload.');
+      assert.equal(env.WRANGLER_LOG_SANITIZE, 'true');
+      assert.equal(env.WRANGLER_WRITE_LOGS, 'false', 'Wrangler debug files must not retain upload payloads.');
+      assert.equal(env.CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV, 'false');
+      assert.equal(env.CLOUDFLARE_INCLUDE_PROCESS_ENV, 'false');
+      for (const value of Object.values(fakeSecrets)) assert(!args.join(' ').includes(value), 'Secret values must not become CLI arguments.');
+    },
+  });
+  assert.deepEqual(events, ['read', 'upload', 'read']);
+  assert.deepEqual(fakeEnv, parentBefore);
+  await assertRemoved(path);
+});
+
+await checkAsync('bootstrap: existing runtime secrets are never replaced by stale build secrets', async () => {
+  const existing = new Set(REQUIRED_SECRETS.slice(0, 2));
+  let reads = 0;
+  let path;
+  await deployWithRuntimeSecrets({
+    env: fakeEnv, branch: TARGET.branch,
+    readSecretNames: async () => ++reads === 1 ? existing : new Set(REQUIRED_SECRETS),
+    upload: async ({args}) => {
+      path = secretPath(args);
+      const uploaded = JSON.parse(await readFile(path, 'utf8'));
+      assert.deepEqual(Object.keys(uploaded), REQUIRED_SECRETS.slice(2));
+      for (const name of existing) assert(!Object.hasOwn(uploaded, name));
+    },
+  });
+  assert.deepEqual([...existing], REQUIRED_SECRETS.slice(0, 2));
+  await assertRemoved(path);
+});
+
+await checkAsync('bootstrap: later deployments need no build secrets when all runtime secrets already exist', async () => {
+  let uploads = 0;
+  let reads = 0;
+  await deployWithRuntimeSecrets({
+    env: {...deployment}, branch: TARGET.branch,
+    readSecretNames: async () => {reads++; return new Set(REQUIRED_SECRETS);},
+    upload: async ({args}) => {uploads++; assert.equal(secretPath(args), undefined); assert.equal(args.length, 3);},
+  });
+  assert.equal(uploads, 1);
+  assert.equal(reads, 2);
+});
+
+for (const invalid of [undefined, '', ' \t\n']) {
+  await checkAsync(`bootstrap: missing build value ${String(invalid)} blocks before any upload and names the field`, async () => {
+    const missingName = REQUIRED_SECRETS[2];
+    let uploads = 0;
+    let reads = 0;
+    await assert.rejects(deployWithRuntimeSecrets({
+      env: {...fakeEnv, [missingName]: invalid}, branch: TARGET.branch,
+      readSecretNames: async () => {reads++; return new Set();},
+      upload: async () => {uploads++;},
+    }), error => {
+      assert(error.message.includes(missingName));
+      for (const value of Object.values(fakeSecrets)) assert(!error.message.includes(value));
+      return true;
+    });
+    assert.equal(uploads, 0);
+    assert.equal(reads, 1);
+  });
+}
+
+await checkAsync('bootstrap: an existing runtime value does not need its build counterpart', async () => {
+  const existingName = REQUIRED_SECRETS[0];
+  const env = {...fakeEnv}; delete env[existingName];
+  let reads = 0;
+  let path;
+  await deployWithRuntimeSecrets({
+    env, branch: TARGET.branch,
+    readSecretNames: async () => ++reads === 1 ? new Set([existingName]) : new Set(REQUIRED_SECRETS),
+    upload: async ({args}) => {
+      path = secretPath(args);
+      const uploaded = JSON.parse(await readFile(path, 'utf8'));
+      assert(!Object.hasOwn(uploaded, existingName));
+      assert.equal(Object.keys(uploaded).length, 3);
+    },
+  });
+  await assertRemoved(path);
+});
+
+await checkAsync('bootstrap: upload failures still remove the temporary file and do not claim post-deploy verification', async () => {
+  let path;
+  let reads = 0;
+  await assert.rejects(deployWithRuntimeSecrets({
+    env: fakeEnv, branch: TARGET.branch,
+    readSecretNames: async () => {reads++; return new Set();},
+    upload: async ({args}) => {path = secretPath(args); await stat(path); throw new Error('Simulated upload failure');},
+  }));
+  assert.equal(reads, 1);
+  await assertRemoved(path);
+});
+
+await checkAsync('bootstrap: absent runtime bindings after upload are reported and the temporary file is removed', async () => {
+  let path;
+  let reads = 0;
+  await assert.rejects(deployWithRuntimeSecrets({
+    env: fakeEnv, branch: TARGET.branch,
+    readSecretNames: async () => {reads++; return new Set();},
+    upload: async ({args}) => {path = secretPath(args); await stat(path);},
+  }), error => {
+    for (const name of REQUIRED_SECRETS) assert(error.message.includes(name));
+    for (const value of Object.values(fakeSecrets)) assert(!error.message.includes(value));
+    return true;
+  });
+  assert.equal(reads, 2);
+  await assertRemoved(path);
+});
+
+await checkAsync('bootstrap: post-upload API failure also removes the temporary file', async () => {
+  let path;
+  let reads = 0;
+  await assert.rejects(deployWithRuntimeSecrets({
+    env: fakeEnv, branch: TARGET.branch,
+    readSecretNames: async () => {if (++reads > 1) throw new Error('Simulated settings failure'); return new Set();},
+    upload: async ({args}) => {path = secretPath(args);},
+  }));
+  await assertRemoved(path);
+});
+
+await checkAsync('bootstrap: initial settings API failure prevents upload', async () => {
+  let uploads = 0;
+  await assert.rejects(deployWithRuntimeSecrets({
+    env: fakeEnv, branch: TARGET.branch,
+    readSecretNames: async () => {throw new Error('Simulated authorization failure');},
+    upload: async () => {uploads++;},
+  }));
+  assert.equal(uploads, 0);
+});
+
+for (const [name, env, branch] of [
+  ['branch', fakeEnv, 'main'],
+  ['account', {...fakeEnv, CLOUDFLARE_ACCOUNT_ID: 'other-account'}, TARGET.branch],
+  ['worker', {...fakeEnv, WRANGLER_CI_OVERRIDE_NAME: 'instituto-bicalho-blog-preview'}, TARGET.branch],
+  ['credential', {...fakeEnv, CLOUDFLARE_API_TOKEN: ''}, TARGET.branch],
+]) {
+  await checkAsync(`bootstrap: ${name} guard runs before accessing settings or upload`, async () => {
+    let calls = 0;
+    await assert.rejects(deployWithRuntimeSecrets({
+      env, branch,
+      readSecretNames: async () => {calls++; return new Set();},
+      upload: async () => {calls++;},
+    }));
+    assert.equal(calls, 0);
+  });
+}
+
 for (const failure of failures) console.error(`FAIL: ${failure.name}\n  ${failure.message}`);
-console.log(`${failures.length ? 'FAIL' : 'PASS'}: ${passed}/${passed + failures.length} Cloudflare production guard checks; no build, network, database or deployment executed.`);
+console.log(`${failures.length ? 'FAIL' : 'PASS'}: ${passed}/${passed + failures.length} Cloudflare production guard/bootstrap checks; fake secrets only, no build, network, database or deployment executed.`);
 if (failures.length) process.exitCode = 1;
